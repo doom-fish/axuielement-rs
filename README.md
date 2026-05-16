@@ -1,8 +1,8 @@
 # axuielement
 
-Safe Rust bindings for Apple's [`AXUIElement`](https://developer.apple.com/documentation/applicationservices/axuielement_h) Accessibility API on macOS — read attributes, list children, perform actions on other applications' UIs ("click this button in Photoshop", "what's the title of the focused window?", "list every menu item Safari exposes").
+Safe Rust bindings for Apple's [`AXUIElement`](https://developer.apple.com/documentation/applicationservices/axuielement_h) Accessibility API on macOS — read attributes, list children, perform actions, and subscribe to notifications on other applications' UIs.
 
-> **Status:** experimental. v0.1 ships construction, attribute / action enumeration + read, perform action, system-wide + per-app entry points. v0.2 adds attribute *write* with typed values, parameterised attributes, observer-based notifications, and child traversal helpers.
+> **Status:** actively developed. v0.5 ships construction, attribute/action enumeration, string/element/point/size reads, point/size writes, indexed child traversal, action descriptions, parameterized-attribute name enumeration, hit-testing, and `AXObserver` notifications.
 
 Pure C — **zero Swift bridge**.
 
@@ -18,13 +18,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    // Read the system-wide focused window.
     let system = AXElement::system_wide().ok_or("no system element")?;
-    if let Some(window) = system.element_attribute("AXFocusedUIElement")? {
-        let title = window.string_attribute("AXTitle")?.unwrap_or_default();
-        println!("Focused element title: {title:?}");
-        println!("Available attributes: {:?}", window.attribute_names()?);
-        println!("Available actions:    {:?}", window.action_names()?);
+    let app = system
+        .element_attribute("AXFocusedApplication")?
+        .ok_or("no focused app")?;
+
+    println!("AXWindows count: {}", app.attribute_value_count("AXWindows")?);
+    for window in app.element_array_attribute_range("AXWindows", 0, 3)? {
+        println!("title={:?}", window.string_attribute("AXTitle")?);
+        println!("actions={:?}", window.action_names()?);
+        println!("action desc={:?}", window.action_description("AXRaise")?);
     }
     Ok(())
 }
@@ -32,7 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Permissions
 
-`AXUIElement` requires **Accessibility permission** (System Settings → Privacy & Security → Accessibility). Use [`is_process_trusted`] to check programmatically. Without permission, every API call returns `AXError::APIDisabled` or `AXError::CannotComplete`.
+`AXUIElement` requires **Accessibility permission** (System Settings → Privacy & Security → Accessibility). Use [`is_process_trusted`] to check programmatically. Without permission, most messaging APIs return `AXError::APIDisabled` or `AXError::CannotComplete`.
 
 ## Pipeline composition
 
@@ -49,13 +52,18 @@ axuielement (drive UI) ──► click "Save", read window title, walk menu tree
 - [x] `AXElement::{from_pid, system_wide}`
 - [x] Attribute enumeration (`attribute_names`)
 - [x] Read string + element attributes
-- [x] Action enumeration + `perform_action`
+- [x] Typed point/size reads + writes via `AXValue`
+- [x] Indexed array reads + child traversal helpers (`attribute_value_count`, `element_array_attribute_range`, `children`)
+- [x] Action enumeration + descriptions + `perform_action`
+- [x] Hit-testing (`element_at_position`)
 - [x] Trust + API-enabled queries
 - [x] Per-element messaging timeout
-- [ ] Typed attribute writes (string, number, point/size/rect via `AXValue`)
-- [ ] Parameterised attribute reads
-- [ ] `AXObserver` notifications (run-loop integration)
-- [ ] Helpers: walk-children, find-by-role, find-by-title
+- [x] `AXObserver` notifications (run-loop integration)
+- [x] Parameterized attribute-name enumeration
+- [ ] Generic parameterized-attribute value helpers
+- [ ] `AXUIElementCopyMultipleAttributeValues` high-level wrapper
+- [ ] `AXObserverCreateWithInfoCallback` high-level wrapper
+- [ ] Additional typed attribute writes (`CGRect`, strings, numbers)
 
 ## License
 

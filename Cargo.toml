@@ -1,6 +1,6 @@
 [package]
 name = "axuielement"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/doom-fish/axuielement-rs"
@@ -14,6 +14,8 @@ readme = "README.md"
 build = "build.rs"
 include = [
     "src/**/*",
+    "examples/**/*",
+    "tests/**/*",
     "build.rs",
     "Cargo.toml",
     "README.md",
@@ -48,6 +50,9 @@ maintenance = { status = "actively-developed" }
 
 [[example]]
 name = "01_focused_window"
+
+[[example]]
+name = "02_children_and_actions"
 
 [profile.release]
 debug = "full"

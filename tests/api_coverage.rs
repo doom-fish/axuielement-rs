@@ -39,7 +39,12 @@ fn extract_rust_externs() -> BTreeSet<String> {
     re.captures_iter(&s).map(|c| c[1].to_string()).collect()
 }
 
-fn report(name: &str, apple: &BTreeSet<String>, ours: &BTreeSet<String>, omitted: &BTreeSet<String>) {
+fn report(
+    name: &str,
+    apple: &BTreeSet<String>,
+    ours: &BTreeSet<String>,
+    omitted: &BTreeSet<String>,
+) {
     let wrapped: BTreeSet<&String> = apple.intersection(ours).collect();
     let missing: BTreeSet<&String> = apple
         .difference(ours)
@@ -76,23 +81,38 @@ fn ax_ui_element_coverage() {
     let apple = extract_c_functions("AXUIElement", &header);
     let ours = extract_rust_externs();
     let omitted = omitted_set([
-        "AXUIElementGetTypeID",
-        // Indexed + multi-attribute reads — v0.2.
-        "AXUIElementGetAttributeValueCount",
-        "AXUIElementCopyAttributeValues",
-        "AXUIElementCopyMultipleAttributeValues",
-        // Parameterised attributes — v0.2.
-        "AXUIElementCopyParameterizedAttributeNames",
-        "AXUIElementCopyParameterizedAttributeValue",
-        // Action description text — v0.2.
-        "AXUIElementCopyActionDescription",
-        // Hit-testing — v0.2.
-        "AXUIElementCopyElementAtPosition",
-        // Deprecated keyboard-event helpers (use cgevents instead).
-        "AXUIElementPostKeyboardEvent",
-        // False-positive regex match (the plural `AXUIElementRefs` appears
-        // in a comment, not as a function declaration).
+        // False-positive regex match (the plural `AXUIElementRefs` appears in a comment).
         "AXUIElementRefs",
     ]);
     report("AXUIElement", &apple, &ours, &omitted);
+}
+
+#[test]
+fn ax_value_coverage() {
+    let apple = extract_c_functions("AXValue", &read_header("AXValue"));
+    let ours = extract_rust_externs();
+    report("AXValue", &apple, &ours, &BTreeSet::new());
+}
+
+#[test]
+fn ax_observer_coverage() {
+    let apple = extract_c_functions("AXObserver", &read_header("AXUIElement"));
+    let ours = extract_rust_externs();
+    report("AXObserver", &apple, &ours, &BTreeSet::new());
+}
+
+#[test]
+fn misc_ax_symbols_are_declared() {
+    let ffi =
+        std::fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/ffi/mod.rs"))
+            .unwrap();
+    for symbol in [
+        "AXAPIEnabled",
+        "AXIsProcessTrusted",
+        "AXIsProcessTrustedWithOptions",
+        "AXMakeProcessTrusted",
+        "kAXTrustedCheckOptionPrompt",
+    ] {
+        assert!(ffi.contains(symbol), "missing symbol: {symbol}");
+    }
 }

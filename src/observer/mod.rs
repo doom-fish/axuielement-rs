@@ -21,8 +21,7 @@ pub struct AXObserverEvent {
     pub notification: String,
 }
 
-/// RAII guard for an `AXObserver` registration. Drops the observer +
-/// removes it from the current thread's run loop.
+/// RAII guard for an `AXObserver` registration. Drops the observer + removes it from the current thread's run loop.
 pub struct AXObserver {
     observer: ffi::AXObserverRef,
     source: *mut c_void,
@@ -92,7 +91,9 @@ unsafe extern "C" fn observer_trampoline(
     let Ok(notif) = String::from_utf8(buf) else {
         return;
     };
-    let event = AXObserverEvent { notification: notif };
+    let event = AXObserverEvent {
+        notification: notif,
+    };
     let Ok(cb) = state.callback.lock() else {
         return;
     };
@@ -100,8 +101,12 @@ unsafe extern "C" fn observer_trampoline(
 }
 
 impl AXObserver {
-    /// Create an observer attached to the PID's process. Pass a closure
-    /// that fires on every notification.
+    #[must_use]
+    pub fn type_id() -> ffi::CFTypeID {
+        unsafe { ffi::AXObserverGetTypeID() }
+    }
+
+    /// Create an observer attached to the PID's process. Pass a closure that fires on every notification.
     ///
     /// # Errors
     ///
@@ -114,8 +119,7 @@ impl AXObserver {
             callback: Mutex::new(Box::new(callback)),
         });
         let mut observer: ffi::AXObserverRef = ptr::null_mut();
-        let status =
-            unsafe { ffi::AXObserverCreate(pid, observer_trampoline, &mut observer) };
+        let status = unsafe { ffi::AXObserverCreate(pid, observer_trampoline, &mut observer) };
         if status != ffi::kAXErrorSuccess {
             return Err(AXError::from_status(status, "AXObserverCreate"));
         }
@@ -129,9 +133,7 @@ impl AXObserver {
         })
     }
 
-    /// Subscribe to `notification` on `element`. Common notification
-    /// names: `kAXFocusedWindowChangedNotification`,
-    /// `kAXValueChangedNotification`, `kAXTitleChangedNotification`.
+    /// Subscribe to `notification` on `element`.
     ///
     /// # Errors
     ///
@@ -168,9 +170,7 @@ impl AXObserver {
         Ok(())
     }
 
-    /// Attach the observer to the calling thread's run loop. Callbacks
-    /// won't fire until you drive that run loop (`CFRunLoopRun`, or your
-    /// app's existing event loop).
+    /// Attach the observer to the calling thread's run loop. Callbacks won't fire until you drive that run loop.
     pub fn schedule_on_current_run_loop(&self) {
         if self.source.is_null() {
             return;
@@ -185,8 +185,7 @@ impl AXObserver {
     }
 }
 
-/// Run the current thread's run loop forever (or until
-/// [`stop_current_run_loop`] is called).
+/// Run the current thread's run loop forever (or until [`stop_current_run_loop`] is called).
 pub fn run_current_run_loop() {
     unsafe { ffi::CFRunLoopRun() };
 }

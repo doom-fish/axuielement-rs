@@ -10,14 +10,19 @@ pub enum AXError {
     Failure,
     IllegalArgument(String),
     InvalidUIElement,
+    InvalidUIElementObserver,
     CannotComplete,
     AttributeUnsupported(String),
     ActionUnsupported(String),
     NotificationUnsupported,
     NotImplemented,
+    NotificationAlreadyRegistered,
+    NotificationNotRegistered,
     APIDisabled,
     NoValue,
-    /// Raw IOReturn-style error code.
+    ParameterizedAttributeUnsupported(String),
+    NotEnoughPrecision,
+    /// Raw `AXError` code.
     Other(i32),
 }
 
@@ -27,13 +32,20 @@ impl AXError {
             ffi::kAXErrorFailure => Self::Failure,
             ffi::kAXErrorIllegalArgument => Self::IllegalArgument(ctx.to_string()),
             ffi::kAXErrorInvalidUIElement => Self::InvalidUIElement,
+            ffi::kAXErrorInvalidUIElementObserver => Self::InvalidUIElementObserver,
             ffi::kAXErrorCannotComplete => Self::CannotComplete,
             ffi::kAXErrorAttributeUnsupported => Self::AttributeUnsupported(ctx.to_string()),
             ffi::kAXErrorActionUnsupported => Self::ActionUnsupported(ctx.to_string()),
             ffi::kAXErrorNotificationUnsupported => Self::NotificationUnsupported,
             ffi::kAXErrorNotImplemented => Self::NotImplemented,
+            ffi::kAXErrorNotificationAlreadyRegistered => Self::NotificationAlreadyRegistered,
+            ffi::kAXErrorNotificationNotRegistered => Self::NotificationNotRegistered,
             ffi::kAXErrorAPIDisabled => Self::APIDisabled,
             ffi::kAXErrorNoValue => Self::NoValue,
+            ffi::kAXErrorParameterizedAttributeUnsupported => {
+                Self::ParameterizedAttributeUnsupported(ctx.to_string())
+            }
+            ffi::kAXErrorNotEnoughPrecision => Self::NotEnoughPrecision,
             other => Self::Other(other),
         }
     }
@@ -45,16 +57,23 @@ impl fmt::Display for AXError {
             Self::Failure => write!(f, "AX failure"),
             Self::IllegalArgument(c) => write!(f, "illegal argument: {c}"),
             Self::InvalidUIElement => write!(f, "invalid UI element"),
+            Self::InvalidUIElementObserver => write!(f, "invalid UI element observer"),
             Self::CannotComplete => write!(f, "cannot complete"),
             Self::AttributeUnsupported(c) => write!(f, "attribute unsupported: {c}"),
             Self::ActionUnsupported(c) => write!(f, "action unsupported: {c}"),
             Self::NotificationUnsupported => write!(f, "notification unsupported"),
             Self::NotImplemented => write!(f, "not implemented"),
+            Self::NotificationAlreadyRegistered => write!(f, "notification already registered"),
+            Self::NotificationNotRegistered => write!(f, "notification not registered"),
             Self::APIDisabled => write!(
                 f,
                 "Accessibility API disabled — open System Settings → Privacy & Security → Accessibility"
             ),
             Self::NoValue => write!(f, "no value"),
+            Self::ParameterizedAttributeUnsupported(c) => {
+                write!(f, "parameterized attribute unsupported: {c}")
+            }
+            Self::NotEnoughPrecision => write!(f, "not enough precision"),
             Self::Other(s) => write!(f, "AXError {s}"),
         }
     }

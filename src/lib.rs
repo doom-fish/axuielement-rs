@@ -7,7 +7,7 @@
 //! Safe Rust bindings for Apple's
 //! [`AXUIElement`](https://developer.apple.com/documentation/applicationservices/axuielement_h)
 //! Accessibility API on macOS — read attributes, list children, perform
-//! actions on other applications' UIs.
+//! actions, and subscribe to notifications on other applications' UIs.
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
