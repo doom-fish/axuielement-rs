@@ -198,6 +198,26 @@ impl AXElement {
             Err(AXError::from_status(s, action))
         }
     }
+
+    /// Hit-test the element at screen coordinates `(x, y)`. Only valid
+    /// on an *application* element (returned by [`Self::from_pid`])
+    /// or the system-wide element.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AXError`] on Apple-side failure. Returns
+    /// `Ok(None)` if no element is at the requested position.
+    pub fn element_at_position(&self, x: f32, y: f32) -> Result<Option<Self>, AXError> {
+        let mut out: ffi::AXUIElementRef = core::ptr::null_mut();
+        let s = unsafe { ffi::AXUIElementCopyElementAtPosition(self.raw, x, y, &mut out) };
+        if s == ffi::kAXErrorSuccess && !out.is_null() {
+            Ok(Some(Self { raw: out }))
+        } else if s == ffi::kAXErrorNoValue {
+            Ok(None)
+        } else {
+            Err(AXError::from_status(s, "element_at_position"))
+        }
+    }
 }
 
 /// Whether the current process has been granted Accessibility permission.
