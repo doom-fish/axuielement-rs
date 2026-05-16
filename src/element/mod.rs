@@ -205,6 +205,159 @@ pub fn api_enabled() -> bool {
     unsafe { ffi::AXAPIEnabled() }
 }
 
+// ---- AXValue typed reads / writes ----
+
+/// A CG point as a typed AX value pair.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct AXPoint {
+    pub x: f64,
+    pub y: f64,
+}
+
+/// A CG size as a typed AX value pair.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct AXSize {
+    pub width: f64,
+    pub height: f64,
+}
+
+/// A CG rect as a typed AX value pair.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct AXRect {
+    pub origin: AXPoint,
+    pub size: AXSize,
+}
+
+impl AXElement {
+    /// Read a `kAXValueTypeCGPoint`-typed attribute (e.g. `kAXPositionAttribute`).
+    ///
+    /// # Errors
+    ///
+    /// See [`AXError`].
+    pub fn point_attribute(&self, name: &str) -> Result<Option<AXPoint>, AXError> {
+        let cf_name = make_cfstring(name)?;
+        let mut value: ffi::CFTypeRef = ptr::null();
+        let s = unsafe { ffi::AXUIElementCopyAttributeValue(self.raw, cf_name, &mut value) };
+        unsafe { ffi::CFRelease(cf_name) };
+        if s != ffi::kAXErrorSuccess {
+            if s == ffi::kAXErrorNoValue {
+                return Ok(None);
+            }
+            return Err(AXError::from_status(s, name));
+        }
+        if value.is_null() {
+            return Ok(None);
+        }
+        if unsafe { ffi::AXValueGetType(value) } != ffi::kAXValueTypeCGPoint {
+            unsafe { ffi::CFRelease(value) };
+            return Ok(None);
+        }
+        let mut p = AXPoint::default();
+        let ok = unsafe {
+            ffi::AXValueGetValue(
+                value,
+                ffi::kAXValueTypeCGPoint,
+                core::ptr::from_mut(&mut p).cast(),
+            )
+        };
+        unsafe { ffi::CFRelease(value) };
+        if ok { Ok(Some(p)) } else { Ok(None) }
+    }
+
+    /// Read a `kAXValueTypeCGSize`-typed attribute (e.g. `kAXSizeAttribute`).
+    ///
+    /// # Errors
+    ///
+    /// See [`AXError`].
+    pub fn size_attribute(&self, name: &str) -> Result<Option<AXSize>, AXError> {
+        let cf_name = make_cfstring(name)?;
+        let mut value: ffi::CFTypeRef = ptr::null();
+        let s = unsafe { ffi::AXUIElementCopyAttributeValue(self.raw, cf_name, &mut value) };
+        unsafe { ffi::CFRelease(cf_name) };
+        if s != ffi::kAXErrorSuccess {
+            if s == ffi::kAXErrorNoValue {
+                return Ok(None);
+            }
+            return Err(AXError::from_status(s, name));
+        }
+        if value.is_null() {
+            return Ok(None);
+        }
+        if unsafe { ffi::AXValueGetType(value) } != ffi::kAXValueTypeCGSize {
+            unsafe { ffi::CFRelease(value) };
+            return Ok(None);
+        }
+        let mut sz = AXSize::default();
+        let ok = unsafe {
+            ffi::AXValueGetValue(
+                value,
+                ffi::kAXValueTypeCGSize,
+                core::ptr::from_mut(&mut sz).cast(),
+            )
+        };
+        unsafe { ffi::CFRelease(value) };
+        if ok { Ok(Some(sz)) } else { Ok(None) }
+    }
+
+    /// Write a `kAXValueTypeCGPoint`-typed attribute.
+    ///
+    /// # Errors
+    ///
+    /// See [`AXError`].
+    pub fn set_point_attribute(&self, name: &str, value: AXPoint) -> Result<(), AXError> {
+        let cf_name = make_cfstring(name)?;
+        let v = unsafe {
+            ffi::AXValueCreate(
+                ffi::kAXValueTypeCGPoint,
+                core::ptr::from_ref(&value).cast(),
+            )
+        };
+        if v.is_null() {
+            unsafe { ffi::CFRelease(cf_name) };
+            return Err(AXError::Failure);
+        }
+        let s = unsafe { ffi::AXUIElementSetAttributeValue(self.raw, cf_name, v) };
+        unsafe {
+            ffi::CFRelease(v);
+            ffi::CFRelease(cf_name);
+        }
+        if s == ffi::kAXErrorSuccess {
+            Ok(())
+        } else {
+            Err(AXError::from_status(s, name))
+        }
+    }
+
+    /// Write a `kAXValueTypeCGSize`-typed attribute.
+    ///
+    /// # Errors
+    ///
+    /// See [`AXError`].
+    pub fn set_size_attribute(&self, name: &str, value: AXSize) -> Result<(), AXError> {
+        let cf_name = make_cfstring(name)?;
+        let v = unsafe {
+            ffi::AXValueCreate(
+                ffi::kAXValueTypeCGSize,
+                core::ptr::from_ref(&value).cast(),
+            )
+        };
+        if v.is_null() {
+            unsafe { ffi::CFRelease(cf_name) };
+            return Err(AXError::Failure);
+        }
+        let s = unsafe { ffi::AXUIElementSetAttributeValue(self.raw, cf_name, v) };
+        unsafe {
+            ffi::CFRelease(v);
+            ffi::CFRelease(cf_name);
+        }
+        if s == ffi::kAXErrorSuccess {
+            Ok(())
+        } else {
+            Err(AXError::from_status(s, name))
+        }
+    }
+}
+
 // ---- internal helpers ----
 
 fn make_cfstring(s: &str) -> Result<ffi::CFStringRef, AXError> {

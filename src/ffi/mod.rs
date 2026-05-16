@@ -89,7 +89,47 @@ extern "C" {
     // Process trust
     pub fn AXIsProcessTrusted() -> bool;
     pub fn AXAPIEnabled() -> bool;
+
+    // AXValue (typed struct-wrapping CFType)
+    pub fn AXValueCreate(value_type: AXValueType, value_ptr: *const c_void) -> CFTypeRef;
+    pub fn AXValueGetType(value: CFTypeRef) -> AXValueType;
+    pub fn AXValueGetValue(value: CFTypeRef, value_type: AXValueType, value_ptr: *mut c_void) -> bool;
+
+    // AXObserver (notifications)
+    pub fn AXObserverCreate(
+        application: pid_t,
+        callback: AXObserverCallback,
+        out_observer: *mut AXObserverRef,
+    ) -> AXError;
+    pub fn AXObserverAddNotification(
+        observer: AXObserverRef,
+        element: AXUIElementRef,
+        notification: CFStringRef,
+        refcon: *mut c_void,
+    ) -> AXError;
+    pub fn AXObserverRemoveNotification(
+        observer: AXObserverRef,
+        element: AXUIElementRef,
+        notification: CFStringRef,
+    ) -> AXError;
+    pub fn AXObserverGetRunLoopSource(observer: AXObserverRef) -> *mut c_void;
 }
+
+pub type AXValueType = u32;
+pub type AXObserverRef = *mut c_void;
+pub type AXObserverCallback = unsafe extern "C" fn(
+    observer: AXObserverRef,
+    element: AXUIElementRef,
+    notification: CFStringRef,
+    refcon: *mut c_void,
+);
+
+pub const kAXValueTypeCGPoint: AXValueType = 1;
+pub const kAXValueTypeCGSize: AXValueType = 2;
+pub const kAXValueTypeCGRect: AXValueType = 3;
+pub const kAXValueTypeCFRange: AXValueType = 4;
+pub const kAXValueTypeAXError: AXValueType = 5;
+pub const kAXValueTypeIllegal: AXValueType = 0;
 
 // Common attribute names (defined as CFStrings in AXAttributeConstants.h;
 // the underlying string values are stable Apple constants).

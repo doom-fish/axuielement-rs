@@ -15,11 +15,15 @@ pub mod element;
 pub mod error;
 pub mod ffi;
 
-pub use element::{api_enabled, is_process_trusted, AXElement};
+pub use element::{
+    api_enabled, is_process_trusted, AXElement, AXPoint, AXRect, AXSize,
+};
 pub use error::AXError;
 
 /// Common imports.
 pub mod prelude {
-    pub use crate::element::{api_enabled, is_process_trusted, AXElement};
+    pub use crate::element::{
+        api_enabled, is_process_trusted, AXElement, AXPoint, AXRect, AXSize,
+    };
     pub use crate::error::AXError;
 }
