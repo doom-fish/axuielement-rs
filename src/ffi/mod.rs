@@ -160,6 +160,35 @@ extern "C" {
         value_ptr: *mut c_void,
     ) -> bool;
 
+    // AXTextMarker
+    pub fn AXTextMarkerGetTypeID() -> CFTypeID;
+    pub fn AXTextMarkerCreate(
+        allocator: CFAllocatorRef,
+        bytes: *const u8,
+        length: CFIndex,
+    ) -> AXTextMarkerRef;
+    pub fn AXTextMarkerGetLength(marker: AXTextMarkerRef) -> CFIndex;
+    pub fn AXTextMarkerGetBytePtr(marker: AXTextMarkerRef) -> *const u8;
+    pub fn AXTextMarkerRangeGetTypeID() -> CFTypeID;
+    pub fn AXTextMarkerRangeCreate(
+        allocator: CFAllocatorRef,
+        start_marker: AXTextMarkerRef,
+        end_marker: AXTextMarkerRef,
+    ) -> AXTextMarkerRangeRef;
+    pub fn AXTextMarkerRangeCreateWithBytes(
+        allocator: CFAllocatorRef,
+        start_marker_bytes: *const u8,
+        start_marker_length: CFIndex,
+        end_marker_bytes: *const u8,
+        end_marker_length: CFIndex,
+    ) -> AXTextMarkerRangeRef;
+    pub fn AXTextMarkerRangeCopyStartMarker(
+        text_marker_range: AXTextMarkerRangeRef,
+    ) -> AXTextMarkerRef;
+    pub fn AXTextMarkerRangeCopyEndMarker(
+        text_marker_range: AXTextMarkerRangeRef,
+    ) -> AXTextMarkerRef;
+
     // AXObserver (notifications)
     pub fn AXObserverGetTypeID() -> CFTypeID;
     pub fn AXObserverCreate(
@@ -188,6 +217,8 @@ extern "C" {
 
 pub type AXValueType = u32;
 pub type AXObserverRef = *mut c_void;
+pub type AXTextMarkerRef = *const c_void;
+pub type AXTextMarkerRangeRef = *const c_void;
 pub type AXObserverCallback = unsafe extern "C" fn(
     observer: AXObserverRef,
     element: AXUIElementRef,
@@ -208,6 +239,12 @@ pub const kAXValueTypeCGRect: AXValueType = 3;
 pub const kAXValueTypeCFRange: AXValueType = 4;
 pub const kAXValueTypeAXError: AXValueType = 5;
 pub const kAXValueTypeIllegal: AXValueType = 0;
+pub const kAXValueCGPointType: AXValueType = kAXValueTypeCGPoint;
+pub const kAXValueCGSizeType: AXValueType = kAXValueTypeCGSize;
+pub const kAXValueCGRectType: AXValueType = kAXValueTypeCGRect;
+pub const kAXValueCFRangeType: AXValueType = kAXValueTypeCFRange;
+pub const kAXValueAXErrorType: AXValueType = kAXValueTypeAXError;
+pub const kAXValueIllegalType: AXValueType = kAXValueTypeIllegal;
 
 extern "C" {
     pub fn CFRunLoopGetCurrent() -> *mut c_void;

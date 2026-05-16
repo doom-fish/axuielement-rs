@@ -4,6 +4,7 @@
 //! `ApplicationServices.framework/Frameworks/HIServices.framework/Headers/`.
 //! Pure C — same regex pattern as cgevents / iohidmanager / imageio.
 
+#![cfg(feature = "raw-ffi")]
 #![allow(clippy::cast_precision_loss, clippy::iter_on_single_items)]
 
 use std::collections::BTreeSet;
@@ -102,6 +103,13 @@ fn ax_observer_coverage() {
 }
 
 #[test]
+fn ax_text_marker_coverage() {
+    let apple = extract_c_functions("AXTextMarker", &read_header("AXUIElement"));
+    let ours = extract_rust_externs();
+    report("AXTextMarker", &apple, &ours, &BTreeSet::new());
+}
+
+#[test]
 fn misc_ax_symbols_are_declared() {
     let ffi =
         std::fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/ffi/mod.rs"))
@@ -111,7 +119,9 @@ fn misc_ax_symbols_are_declared() {
         "AXIsProcessTrusted",
         "AXIsProcessTrustedWithOptions",
         "AXMakeProcessTrusted",
+        "AXTextMarkerRangeCreateWithBytes",
         "kAXTrustedCheckOptionPrompt",
+        "kAXValueCGPointType",
     ] {
         assert!(ffi.contains(symbol), "missing symbol: {symbol}");
     }

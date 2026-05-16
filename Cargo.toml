@@ -1,6 +1,6 @@
 [package]
 name = "axuielement"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/doom-fish/axuielement-rs"
@@ -16,12 +16,18 @@ include = [
     "src/**/*",
     "examples/**/*",
     "tests/**/*",
+    "swift-bridge/**/*",
     "build.rs",
     "Cargo.toml",
     "README.md",
     "LICENSE-*",
     "CHANGELOG.md",
+    "COVERAGE.md",
 ]
+
+[features]
+default = ["raw-ffi"]
+raw-ffi = []
 
 [lints.rust]
 
@@ -47,12 +53,6 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [badges]
 maintenance = { status = "actively-developed" }
-
-[[example]]
-name = "01_focused_window"
-
-[[example]]
-name = "02_children_and_actions"
 
 [profile.release]
 debug = "full"

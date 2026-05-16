@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.0] - 2026-05-16
+
+### Added
+
+- Wave-C Swift bridge package (`swift-bridge/`) wrapping the C Accessibility APIs while keeping the raw C surface behind the `raw-ffi` feature.
+- Safe modules for all ten logical areas: `AXUIElement`, `AXObserver`, `AXValue`, `AXTextMarker`, `AXAttribute`, `AXAction`, `AXNotification`, `AXError`, `SystemWide`, and `ProcessTrust`.
+- Generic `AXValue` conversions for strings, booleans, integers, floating-point values, arrays, dictionaries, binary data, `CGPoint`, `CGSize`, `CGRect`, `CFRange`, `AXError`, `AXUIElement`, `AXTextMarker`, and `AXTextMarkerRange`.
+- Generated constant catalogs for attributes, parameterized attributes, roles, subroles, actions, notifications, notification info keys, priorities, menu-item modifiers, and AX value constants.
+- Ten numbered examples and one smoke-test file per logical area.
+- `COVERAGE.md` documenting the audited ApplicationServices / HIServices SDK surface.
+
+### Changed
+
+- `AXElement` is now a type alias of the Swift-bridge-backed `AXUIElement` wrapper.
+- `SystemWideElement` and `ProcessTrustOptions` provide more targeted entry points for focused-element and trust-related workflows.
+- README and crate docs now describe the Swift bridge, raw-FFI feature, examples, and audited areas.
+- Raw FFI coverage now includes the `AXTextMarker` / `AXTextMarkerRange` APIs and legacy `AXValue` aliases.
+
 ## [0.5.0] - 2026-05-16
 
 ### Added
