@@ -74,8 +74,15 @@ impl AXElement {
         if s == ffi::kAXErrorSuccess {
             Ok(pid)
         } else {
-            Err(AXError::from_status(s, "pid"))
+            Err(AXError::from_status(s, "AXUIElementGetPid"))
         }
+    }
+
+    /// Raw `AXUIElementRef` pointer — for FFI interop within this crate.
+    #[doc(hidden)]
+    #[must_use]
+    pub const fn as_ptr(&self) -> ffi::AXUIElementRef {
+        self.raw
     }
 
     /// List every attribute name this element exposes (e.g. `"AXRole"`,

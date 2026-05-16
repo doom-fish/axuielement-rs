@@ -14,16 +14,17 @@
 pub mod element;
 pub mod error;
 pub mod ffi;
+pub mod observer;
 
-pub use element::{
-    api_enabled, is_process_trusted, AXElement, AXPoint, AXRect, AXSize,
-};
+pub use element::{api_enabled, is_process_trusted, AXElement, AXPoint, AXRect, AXSize};
 pub use error::AXError;
+pub use observer::{run_current_run_loop, stop_current_run_loop, AXObserver, AXObserverEvent};
 
 /// Common imports.
 pub mod prelude {
-    pub use crate::element::{
-        api_enabled, is_process_trusted, AXElement, AXPoint, AXRect, AXSize,
-    };
+    pub use crate::element::{api_enabled, is_process_trusted, AXElement, AXPoint, AXRect, AXSize};
     pub use crate::error::AXError;
+    pub use crate::observer::{
+        run_current_run_loop, stop_current_run_loop, AXObserver, AXObserverEvent,
+    };
 }

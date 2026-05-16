@@ -131,6 +131,16 @@ pub const kAXValueTypeCFRange: AXValueType = 4;
 pub const kAXValueTypeAXError: AXValueType = 5;
 pub const kAXValueTypeIllegal: AXValueType = 0;
 
+extern "C" {
+    pub fn CFRunLoopGetCurrent() -> *mut c_void;
+    pub fn CFRunLoopAddSource(rl: *mut c_void, source: *mut c_void, mode: CFStringRef);
+    pub fn CFRunLoopRemoveSource(rl: *mut c_void, source: *mut c_void, mode: CFStringRef);
+    pub fn CFRunLoopRun();
+    pub fn CFRunLoopStop(rl: *mut c_void);
+    pub static kCFRunLoopCommonModes: CFStringRef;
+    pub static kCFRunLoopDefaultMode: CFStringRef;
+}
+
 // Common attribute names (defined as CFStrings in AXAttributeConstants.h;
 // the underlying string values are stable Apple constants).
 pub const kAXRoleAttribute: &str = "AXRole";
