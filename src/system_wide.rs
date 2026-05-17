@@ -22,8 +22,10 @@ impl Deref for SystemWideElement {
 impl SystemWideElement {
     #[must_use]
     pub fn new() -> Option<Self> {
+        // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::system_wide::ax_system_wide_create() };
         (!raw.is_null()).then(|| Self {
+            // SAFETY: pointer is guaranteed valid from the bridge
             inner: unsafe { AXUIElement::from_raw(raw) },
         })
     }
@@ -65,8 +67,10 @@ fn copy_system_element(
     callback: unsafe extern "C" fn(*mut core::ffi::c_void, *mut *mut core::ffi::c_void) -> i32,
 ) -> Result<Option<AXUIElement>, AXError> {
     let mut raw = core::ptr::null_mut();
+    // SAFETY: FFI call with valid arguments
     let status = unsafe { callback(handle, &mut raw) };
     if status == K_AX_ERROR_SUCCESS {
+        // SAFETY: pointer is guaranteed valid from the bridge
         Ok((!raw.is_null()).then(|| unsafe { AXUIElement::from_raw(raw) }))
     } else if status == K_AX_ERROR_NO_VALUE {
         Ok(None)

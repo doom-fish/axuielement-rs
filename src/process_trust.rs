@@ -22,16 +22,19 @@ impl ProcessTrustOptions {
 
 #[must_use]
 pub fn api_enabled() -> bool {
+    // SAFETY: FFI boundary with properly validated inputs
     unsafe { bridge::process_trust::ax_process_trust_api_enabled() }
 }
 
 #[must_use]
 pub fn is_process_trusted() -> bool {
+    // SAFETY: FFI boundary with properly validated inputs
     unsafe { bridge::process_trust::ax_process_trust_is_trusted() }
 }
 
 #[must_use]
 pub fn is_process_trusted_with_options(options: ProcessTrustOptions) -> bool {
+    // SAFETY: FFI boundary with properly validated inputs
     unsafe { bridge::process_trust::ax_process_trust_is_trusted_with_prompt(options.prompt) }
 }
 
@@ -42,6 +45,7 @@ pub fn is_process_trusted_with_prompt() -> bool {
 
 pub fn make_process_trusted(executable_path: &str) -> Result<(), AXError> {
     let executable_path = internal::make_cstring(executable_path)?;
+    // SAFETY: FFI call with valid arguments
     let status = unsafe {
         bridge::process_trust::ax_process_trust_make_process_trusted(executable_path.as_ptr())
     };

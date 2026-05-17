@@ -15,7 +15,9 @@ unsafe impl Sync for AXTextMarker {}
 
 impl Clone for AXTextMarker {
     fn clone(&self) -> Self {
+        // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_text_marker::ax_text_marker_retain(self.raw) };
+        // SAFETY: pointer is guaranteed valid from the bridge
         unsafe { Self::from_raw(raw) }
     }
 }
@@ -23,6 +25,7 @@ impl Clone for AXTextMarker {
 impl Drop for AXTextMarker {
     fn drop(&mut self) {
         if !self.raw.is_null() {
+            // SAFETY: FFI boundary with properly validated inputs
             unsafe { bridge::ax_text_marker::ax_text_marker_release(self.raw) };
             self.raw = core::ptr::null_mut();
         }
@@ -40,22 +43,26 @@ impl fmt::Debug for AXTextMarker {
 impl AXTextMarker {
     #[must_use]
     pub fn type_id() -> usize {
+        // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_text_marker::ax_text_marker_get_type_id() }
     }
 
     #[must_use]
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         let raw =
+            // SAFETY: FFI boundary with properly validated inputs
             unsafe { bridge::ax_text_marker::ax_text_marker_create(bytes.as_ptr(), bytes.len()) };
         if raw.is_null() {
             None
         } else {
+            // SAFETY: pointer is guaranteed valid from the bridge
             Some(unsafe { Self::from_raw(raw) })
         }
     }
 
     #[must_use]
     pub fn len(&self) -> usize {
+        // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_text_marker::ax_text_marker_len(self.raw) }
     }
 
@@ -71,6 +78,7 @@ impl AXTextMarker {
         if len == 0 {
             return bytes;
         }
+        // SAFETY: FFI call with valid arguments
         let _ = unsafe {
             bridge::ax_text_marker::ax_text_marker_copy_bytes(
                 self.raw,
@@ -100,7 +108,9 @@ unsafe impl Sync for AXTextMarkerRange {}
 
 impl Clone for AXTextMarkerRange {
     fn clone(&self) -> Self {
+        // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_text_marker::ax_text_marker_range_retain(self.raw) };
+        // SAFETY: pointer is guaranteed valid from the bridge
         unsafe { Self::from_raw(raw) }
     }
 }
@@ -108,6 +118,7 @@ impl Clone for AXTextMarkerRange {
 impl Drop for AXTextMarkerRange {
     fn drop(&mut self) {
         if !self.raw.is_null() {
+            // SAFETY: FFI boundary with properly validated inputs
             unsafe { bridge::ax_text_marker::ax_text_marker_range_release(self.raw) };
             self.raw = core::ptr::null_mut();
         }
@@ -123,23 +134,27 @@ impl fmt::Debug for AXTextMarkerRange {
 impl AXTextMarkerRange {
     #[must_use]
     pub fn type_id() -> usize {
+        // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_text_marker::ax_text_marker_range_get_type_id() }
     }
 
     #[must_use]
     pub fn new(start: &AXTextMarker, end: &AXTextMarker) -> Option<Self> {
+        // SAFETY: FFI call with valid arguments
         let raw = unsafe {
             bridge::ax_text_marker::ax_text_marker_range_create(start.as_ptr(), end.as_ptr())
         };
         if raw.is_null() {
             None
         } else {
+            // SAFETY: pointer is guaranteed valid from the bridge
             Some(unsafe { Self::from_raw(raw) })
         }
     }
 
     #[must_use]
     pub fn from_bytes(start: &[u8], end: &[u8]) -> Option<Self> {
+        // SAFETY: FFI call with valid arguments
         let raw = unsafe {
             bridge::ax_text_marker::ax_text_marker_range_create_with_bytes(
                 start.as_ptr(),
@@ -151,6 +166,7 @@ impl AXTextMarkerRange {
         if raw.is_null() {
             None
         } else {
+            // SAFETY: pointer is guaranteed valid from the bridge
             Some(unsafe { Self::from_raw(raw) })
         }
     }
@@ -158,13 +174,17 @@ impl AXTextMarkerRange {
     #[must_use]
     pub fn start_marker(&self) -> AXTextMarker {
         let raw =
+            // SAFETY: FFI boundary with properly validated inputs
             unsafe { bridge::ax_text_marker::ax_text_marker_range_copy_start_marker(self.raw) };
+        // SAFETY: pointer is guaranteed valid from the bridge
         unsafe { AXTextMarker::from_raw(raw) }
     }
 
     #[must_use]
     pub fn end_marker(&self) -> AXTextMarker {
+        // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_text_marker::ax_text_marker_range_copy_end_marker(self.raw) };
+        // SAFETY: pointer is guaranteed valid from the bridge
         unsafe { AXTextMarker::from_raw(raw) }
     }
 

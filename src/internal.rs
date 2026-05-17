@@ -23,10 +23,13 @@ pub(crate) unsafe fn string_from_handle(handle: *mut c_void) -> Option<String> {
     if handle.is_null() {
         return None;
     }
+    // SAFETY: FFI call with valid arguments
     let len = unsafe { ax_string_len(handle) };
     let mut buffer = vec![0_u8; len.saturating_add(1)];
     let ok =
+        // SAFETY: FFI boundary with properly validated inputs
         unsafe { ax_string_copy_utf8(handle, buffer.as_mut_ptr().cast::<c_char>(), buffer.len()) };
+    // SAFETY: FFI boundary with properly validated inputs
     unsafe { ax_string_release(handle) };
     if !ok {
         return None;

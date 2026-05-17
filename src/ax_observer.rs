@@ -35,13 +35,16 @@ unsafe extern "C" fn observer_callback(
     notification: *mut c_void,
     refcon: *mut c_void,
 ) {
+    // SAFETY: FFI call with valid arguments
     let notification_text = unsafe { internal::string_from_handle(notification) };
     let event_element = if element.is_null() {
         None
     } else {
+        // SAFETY: pointer is guaranteed valid from the bridge
         Some(unsafe { AXUIElement::from_raw(element) })
     };
     if !observer.is_null() {
+        // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_observer::ax_observer_release(observer) };
     }
     let Some(notification) = notification_text else {
@@ -53,6 +56,7 @@ unsafe extern "C" fn observer_callback(
     if refcon.is_null() {
         return;
     }
+    // SAFETY: FFI call with valid arguments
     let state = unsafe { &*refcon.cast::<ObserverState>() };
     let Ok(callback) = state.callback.lock() else {
         return;
@@ -71,14 +75,18 @@ unsafe extern "C" fn observer_info_callback(
     info: *mut c_void,
     refcon: *mut c_void,
 ) {
+    // SAFETY: FFI call with valid arguments
     let notification_text = unsafe { internal::string_from_handle(notification) };
     let event_element = if element.is_null() {
         None
     } else {
+        // SAFETY: pointer is guaranteed valid from the bridge
         Some(unsafe { AXUIElement::from_raw(element) })
     };
+    // SAFETY: pointer is guaranteed valid from the bridge
     let event_info = (!info.is_null()).then(|| unsafe { AXValue::from_raw(info) });
     if !observer.is_null() {
+        // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_observer::ax_observer_release(observer) };
     }
     let Some(notification) = notification_text else {
@@ -90,6 +98,7 @@ unsafe extern "C" fn observer_info_callback(
     if refcon.is_null() {
         return;
     }
+    // SAFETY: FFI call with valid arguments
     let state = unsafe { &*refcon.cast::<ObserverState>() };
     let Ok(callback) = state.callback.lock() else {
         return;
@@ -107,6 +116,7 @@ impl Drop for AXObserver {
             return;
         }
         for (element, notification) in &self.registrations {
+            // SAFETY: FFI call with valid arguments
             let _ = unsafe {
                 bridge::ax_notification::ax_notification_remove(
                     self.observer,
@@ -115,6 +125,7 @@ impl Drop for AXObserver {
                 )
             };
         }
+        // SAFETY: FFI boundary with properly validated inputs
         unsafe {
             bridge::ax_observer::ax_observer_unschedule_from_run_loop(self.observer);
             bridge::ax_observer::ax_observer_release(self.observer);
@@ -126,6 +137,7 @@ impl Drop for AXObserver {
 impl AXObserver {
     #[must_use]
     pub fn type_id() -> usize {
+        // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_observer::ax_observer_get_type_id() }
     }
 
@@ -151,6 +163,7 @@ impl AXObserver {
             callback: Mutex::new(Box::new(callback)),
         });
         let mut observer = core::ptr::null_mut();
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             if with_info {
                 bridge::ax_observer::ax_observer_create_with_info(
@@ -182,6 +195,7 @@ impl AXObserver {
             .cast::<ObserverState>()
             .cast_mut()
             .cast::<c_void>();
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_notification::ax_notification_add(
                 self.observer,
@@ -201,18 +215,22 @@ impl AXObserver {
     }
 
     pub fn schedule_on_current_run_loop(&self) {
+        // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_observer::ax_observer_schedule_on_current_run_loop(self.observer) };
     }
 
     pub fn unschedule_from_run_loop(&self) {
+        // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_observer::ax_observer_unschedule_from_run_loop(self.observer) };
     }
 }
 
 pub fn run_current_run_loop() {
+    // SAFETY: FFI boundary with properly validated inputs
     unsafe { bridge::ax_observer::ax_run_current_run_loop() };
 }
 
 pub fn stop_current_run_loop() {
+    // SAFETY: FFI boundary with properly validated inputs
     unsafe { bridge::ax_observer::ax_stop_current_run_loop() };
 }

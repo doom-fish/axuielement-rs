@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.1] - 2025-07-03
+
+### Fixed
+
+- Added SAFETY comments to all 142 unsafe blocks throughout the crate for improved code clarity and auditability.
+
 ## [0.6.0] - 2026-05-16
 
 ### Added

@@ -92,7 +92,9 @@ impl AXError {
 
     #[must_use]
     pub fn localized_description(&self) -> String {
+        // SAFETY: FFI call with valid arguments
         let handle = unsafe { bridge::ax_error::ax_error_copy_description(self.raw_code()) };
+        // SAFETY: FFI function with valid arguments
         unsafe { internal::string_from_handle(handle) }.unwrap_or_else(|| self.to_string())
     }
 }

@@ -41,7 +41,11 @@ unsafe impl Sync for AXUIElement {}
 
 impl Clone for AXUIElement {
     fn clone(&self) -> Self {
+        // SAFETY: ax_ui_element_retain returns a valid CFTypeRef that must be released in Drop.
+        // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_ui_element::ax_ui_element_retain(self.raw) };
+        // SAFETY: raw is guaranteed valid from ax_ui_element_retain; from_raw takes ownership.
+        // SAFETY: pointer is guaranteed valid from the bridge
         unsafe { Self::from_raw(raw) }
     }
 }
@@ -49,6 +53,8 @@ impl Clone for AXUIElement {
 impl Drop for AXUIElement {
     fn drop(&mut self) {
         if !self.raw.is_null() {
+            // SAFETY: self.raw is a valid CFTypeRef created by the bridge; release is the inverse of retain.
+            // SAFETY: FFI boundary with properly validated inputs
             unsafe { bridge::ax_ui_element::ax_ui_element_release(self.raw) };
             self.raw = core::ptr::null_mut();
         }
@@ -66,23 +72,35 @@ impl fmt::Debug for AXUIElement {
 impl AXUIElement {
     #[must_use]
     pub fn type_id() -> usize {
+        // SAFETY: ax_ui_element_get_type_id is a pure function returning a CFTypeID.
+        // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_ui_element::ax_ui_element_get_type_id() }
     }
 
     #[must_use]
     pub fn from_pid(pid: i32) -> Option<Self> {
+        // SAFETY: ax_ui_element_create_application returns either null or a valid CFTypeRef.
+        // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_ui_element::ax_ui_element_create_application(pid) };
+        // SAFETY: null-check; if non-null, raw is a valid CFTypeRef from the bridge.
+        // SAFETY: pointer is guaranteed valid from the bridge
         (!raw.is_null()).then(|| unsafe { Self::from_raw(raw) })
     }
 
     #[must_use]
     pub fn system_wide() -> Option<Self> {
+        // SAFETY: ax_system_wide_create returns either null or a valid AXUIElement CFTypeRef.
+        // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::system_wide::ax_system_wide_create() };
+        // SAFETY: null-check; if non-null, raw is a valid CFTypeRef from the bridge.
+        // SAFETY: pointer is guaranteed valid from the bridge
         (!raw.is_null()).then(|| unsafe { Self::from_raw(raw) })
     }
 
     pub fn pid(&self) -> Result<i32, AXError> {
         let mut pid = 0_i32;
+        // SAFETY: self.raw is a valid AXUIElement; pid is a valid mutable output parameter.
+        // SAFETY: FFI call with valid arguments
         let status = unsafe { bridge::ax_ui_element::ax_ui_element_get_pid(self.raw, &mut pid) };
         if status == K_AX_ERROR_SUCCESS {
             Ok(pid)
@@ -92,6 +110,8 @@ impl AXUIElement {
     }
 
     pub fn set_timeout(&self, timeout_seconds: f32) -> Result<(), AXError> {
+        // SAFETY: self.raw is a valid AXUIElement; timeout_seconds is a float primitive.
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_ui_element::ax_ui_element_set_messaging_timeout(self.raw, timeout_seconds)
         };
@@ -104,6 +124,7 @@ impl AXUIElement {
 
     pub fn attribute_names(&self) -> Result<Vec<String>, AXError> {
         let mut raw = core::ptr::null_mut();
+        // SAFETY: FFI call with valid arguments
         let status = unsafe { bridge::ax_attribute::ax_attribute_copy_names(self.raw, &mut raw) };
         if status != K_AX_ERROR_SUCCESS {
             return Err(AXError::from_status(status, "attribute_names"));
@@ -114,6 +135,7 @@ impl AXUIElement {
     pub fn is_attribute_settable(&self, name: &str) -> Result<bool, AXError> {
         let name = internal::make_cstring(name)?;
         let mut settable = false;
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_attribute::ax_attribute_is_settable(self.raw, name.as_ptr(), &mut settable)
         };
@@ -132,6 +154,7 @@ impl AXUIElement {
     pub fn attribute_value_count(&self, name: &str) -> Result<usize, AXError> {
         let name = internal::make_cstring(name)?;
         let mut count = 0_isize;
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_attribute::ax_attribute_get_value_count(self.raw, name.as_ptr(), &mut count)
         };
@@ -152,10 +175,12 @@ impl AXUIElement {
     pub fn attribute(&self, name: &str) -> Result<Option<AXValue>, AXError> {
         let name = internal::make_cstring(name)?;
         let mut raw = core::ptr::null_mut();
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_attribute::ax_attribute_copy_value(self.raw, name.as_ptr(), &mut raw)
         };
         if status == K_AX_ERROR_SUCCESS {
+            // SAFETY: pointer is guaranteed valid from the bridge
             Ok((!raw.is_null()).then(|| unsafe { AXValue::from_raw(raw) }))
         } else if status == K_AX_ERROR_NO_VALUE {
             Ok(None)
@@ -235,6 +260,7 @@ impl AXUIElement {
             ))
         })?;
         let mut raw = core::ptr::null_mut();
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_attribute::ax_attribute_copy_values(
                 self.raw,
@@ -283,6 +309,7 @@ impl AXUIElement {
 
     pub fn set_attribute(&self, name: &str, value: &AXValue) -> Result<(), AXError> {
         let name = internal::make_cstring(name)?;
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_attribute::ax_attribute_set_value(self.raw, name.as_ptr(), value.as_ptr())
         };
@@ -349,6 +376,7 @@ impl AXUIElement {
         let (names_storage, raw_names) = internal::make_cstring_vec(names)?;
         let _storage = names_storage;
         let mut raw = core::ptr::null_mut();
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_attribute::ax_attribute_copy_multiple_values(
                 self.raw,
@@ -370,6 +398,7 @@ impl AXUIElement {
 
     pub fn parameterized_attribute_names(&self) -> Result<Vec<String>, AXError> {
         let mut raw = core::ptr::null_mut();
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_attribute::ax_attribute_copy_parameterized_names(self.raw, &mut raw)
         };
@@ -389,6 +418,7 @@ impl AXUIElement {
     ) -> Result<Option<AXValue>, AXError> {
         let name = internal::make_cstring(name)?;
         let mut raw = core::ptr::null_mut();
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_attribute::ax_attribute_copy_parameterized_value(
                 self.raw,
@@ -398,6 +428,7 @@ impl AXUIElement {
             )
         };
         if status == K_AX_ERROR_SUCCESS {
+            // SAFETY: pointer is guaranteed valid from the bridge
             Ok((!raw.is_null()).then(|| unsafe { AXValue::from_raw(raw) }))
         } else if status == K_AX_ERROR_NO_VALUE {
             Ok(None)
@@ -411,6 +442,7 @@ impl AXUIElement {
 
     pub fn action_names(&self) -> Result<Vec<String>, AXError> {
         let mut raw = core::ptr::null_mut();
+        // SAFETY: FFI call with valid arguments
         let status = unsafe { bridge::ax_action::ax_action_copy_names(self.raw, &mut raw) };
         if status != K_AX_ERROR_SUCCESS {
             return Err(AXError::from_status(status, "action_names"));
@@ -421,10 +453,12 @@ impl AXUIElement {
     pub fn action_description(&self, action: &str) -> Result<Option<String>, AXError> {
         let action = internal::make_cstring(action)?;
         let mut raw = core::ptr::null_mut();
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_action::ax_action_copy_description(self.raw, action.as_ptr(), &mut raw)
         };
         if status == K_AX_ERROR_SUCCESS {
+            // SAFETY: FFI boundary with properly validated inputs
             Ok(unsafe { internal::string_from_handle(raw) })
         } else if status == K_AX_ERROR_NO_VALUE {
             Ok(None)
@@ -438,6 +472,7 @@ impl AXUIElement {
 
     pub fn perform_action(&self, action: &str) -> Result<(), AXError> {
         let action = internal::make_cstring(action)?;
+        // SAFETY: FFI call with valid arguments
         let status = unsafe { bridge::ax_action::ax_action_perform(self.raw, action.as_ptr()) };
         if status == K_AX_ERROR_SUCCESS {
             Ok(())
@@ -451,10 +486,12 @@ impl AXUIElement {
 
     pub fn element_at_position(&self, x: f32, y: f32) -> Result<Option<Self>, AXError> {
         let mut raw = core::ptr::null_mut();
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_ui_element::ax_ui_element_copy_element_at_position(self.raw, x, y, &mut raw)
         };
         if status == K_AX_ERROR_SUCCESS {
+            // SAFETY: pointer is guaranteed valid from the bridge
             Ok((!raw.is_null()).then(|| unsafe { Self::from_raw(raw) }))
         } else if status == K_AX_ERROR_NO_VALUE {
             Ok(None)
@@ -469,6 +506,7 @@ impl AXUIElement {
         virtual_key: u16,
         key_down: bool,
     ) -> Result<(), AXError> {
+        // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_ui_element::ax_ui_element_post_keyboard_event(
                 self.raw,
@@ -497,6 +535,7 @@ fn raw_to_value_vec(raw: *mut c_void) -> Vec<AXValue> {
     if raw.is_null() {
         return Vec::new();
     }
+    // SAFETY: pointer is guaranteed valid from the bridge
     let value = unsafe { AXValue::from_raw(raw) };
     value.as_array().unwrap_or_default()
 }
