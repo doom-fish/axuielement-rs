@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0] - 2026-05-18
+
+### Changed
+
+- Breaking: `axuielement::ffi` now re-exports `CFTypeRef`, `CFStringRef`, `CFAllocatorRef`, `CFArrayRef`, and `CFDictionaryRef` from `apple-cf`'s raw CoreFoundation bindings instead of defining local aliases.
+- Added an explicit `apple-cf` dependency with the `cg` feature enabled for shared CoreFoundation/CoreGraphics raw types.
+
 ## [0.6.1] - 2025-07-03
 
 ### Fixed

@@ -11,11 +11,8 @@
 
 use core::ffi::{c_char, c_void};
 
-pub type CFTypeRef = *const c_void;
-pub type CFStringRef = *const c_void;
-pub type CFAllocatorRef = *const c_void;
-pub type CFArrayRef = *const c_void;
-pub type CFDictionaryRef = *const c_void;
+pub use apple_cf::raw::{CFAllocatorRef, CFArrayRef, CFDictionaryRef, CFStringRef, CFTypeRef};
+
 pub type CFIndex = isize;
 pub type CFTypeID = usize;
 
