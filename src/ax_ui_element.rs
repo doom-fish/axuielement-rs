@@ -9,13 +9,17 @@ use crate::ax_value::{AXPoint, AXRange, AXRect, AXSize, AXValue};
 use crate::{bridge, internal};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+/// Bitflags mirroring `ApplicationServices` `AXCopyMultipleAttributeOptions`.
 pub struct AXCopyMultipleAttributeOptions(u32);
 
 impl AXCopyMultipleAttributeOptions {
+    /// Matches the default `AXCopyMultipleAttributeOptions` value.
     pub const NONE: Self = Self(0);
+    /// Matches `kAXCopyMultipleAttributeOptionStopOnError`.
     pub const STOP_ON_ERROR: Self = Self(1);
 
     #[must_use]
+    /// Returns the raw `AXCopyMultipleAttributeOptions` bit pattern.
     pub const fn bits(self) -> u32 {
         self.0
     }
@@ -30,10 +34,12 @@ impl core::ops::BitOr for AXCopyMultipleAttributeOptions {
 }
 
 #[repr(transparent)]
+/// Safe owner of an `ApplicationServices` `AXUIElementRef`.
 pub struct AXUIElement {
     raw: *mut c_void,
 }
 
+/// Compatibility alias for `AXUIElement`.
 pub type AXElement = AXUIElement;
 
 unsafe impl Send for AXUIElement {}
@@ -71,6 +77,7 @@ impl fmt::Debug for AXUIElement {
 
 impl AXUIElement {
     #[must_use]
+    /// Wraps `AXUIElementGetTypeID`.
     pub fn type_id() -> usize {
         // SAFETY: ax_ui_element_get_type_id is a pure function returning a CFTypeID.
         // SAFETY: FFI boundary with properly validated inputs
@@ -78,6 +85,7 @@ impl AXUIElement {
     }
 
     #[must_use]
+    /// Wraps `AXUIElementCreateApplication`.
     pub fn from_pid(pid: i32) -> Option<Self> {
         // SAFETY: ax_ui_element_create_application returns either null or a valid CFTypeRef.
         // SAFETY: FFI call with valid arguments
@@ -88,6 +96,7 @@ impl AXUIElement {
     }
 
     #[must_use]
+    /// Wraps `AXUIElementCreateSystemWide`.
     pub fn system_wide() -> Option<Self> {
         // SAFETY: ax_system_wide_create returns either null or a valid AXUIElement CFTypeRef.
         // SAFETY: FFI call with valid arguments
@@ -97,6 +106,7 @@ impl AXUIElement {
         (!raw.is_null()).then(|| unsafe { Self::from_raw(raw) })
     }
 
+    /// Wraps `AXUIElementGetPid`.
     pub fn pid(&self) -> Result<i32, AXError> {
         let mut pid = 0_i32;
         // SAFETY: self.raw is a valid AXUIElement; pid is a valid mutable output parameter.
@@ -109,6 +119,7 @@ impl AXUIElement {
         }
     }
 
+    /// Wraps `AXUIElementSetMessagingTimeout`.
     pub fn set_timeout(&self, timeout_seconds: f32) -> Result<(), AXError> {
         // SAFETY: self.raw is a valid AXUIElement; timeout_seconds is a float primitive.
         // SAFETY: FFI call with valid arguments
@@ -122,6 +133,7 @@ impl AXUIElement {
         }
     }
 
+    /// Wraps `AXUIElementCopyAttributeNames`.
     pub fn attribute_names(&self) -> Result<Vec<String>, AXError> {
         let mut raw = core::ptr::null_mut();
         // SAFETY: FFI call with valid arguments
@@ -132,6 +144,7 @@ impl AXUIElement {
         Ok(raw_to_string_vec(raw))
     }
 
+    /// Wraps `AXUIElementIsAttributeSettable`.
     pub fn is_attribute_settable(&self, name: &str) -> Result<bool, AXError> {
         let name = internal::make_cstring(name)?;
         let mut settable = false;
@@ -151,6 +164,7 @@ impl AXUIElement {
         }
     }
 
+    /// Wraps `AXUIElementGetAttributeValueCount`.
     pub fn attribute_value_count(&self, name: &str) -> Result<usize, AXError> {
         let name = internal::make_cstring(name)?;
         let mut count = 0_isize;
@@ -172,6 +186,7 @@ impl AXUIElement {
         }
     }
 
+    /// Wraps `AXUIElementCopyAttributeValue`.
     pub fn attribute(&self, name: &str) -> Result<Option<AXValue>, AXError> {
         let name = internal::make_cstring(name)?;
         let mut raw = core::ptr::null_mut();
@@ -192,48 +207,59 @@ impl AXUIElement {
         }
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` that decodes a string payload.
     pub fn string_attribute(&self, name: &str) -> Result<Option<String>, AXError> {
         Ok(self.attribute(name)?.and_then(|value| value.as_string()))
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` that decodes a boolean payload.
     pub fn bool_attribute(&self, name: &str) -> Result<Option<bool>, AXError> {
         Ok(self.attribute(name)?.and_then(|value| value.as_bool()))
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` that decodes an integer payload.
     pub fn i64_attribute(&self, name: &str) -> Result<Option<i64>, AXError> {
         Ok(self.attribute(name)?.and_then(|value| value.as_i64()))
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` that decodes a floating-point payload.
     pub fn f64_attribute(&self, name: &str) -> Result<Option<f64>, AXError> {
         Ok(self.attribute(name)?.and_then(|value| value.as_f64()))
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` that decodes a `CGPoint` payload.
     pub fn point_attribute(&self, name: &str) -> Result<Option<AXPoint>, AXError> {
         Ok(self.attribute(name)?.and_then(|value| value.as_point()))
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` that decodes a `CGSize` payload.
     pub fn size_attribute(&self, name: &str) -> Result<Option<AXSize>, AXError> {
         Ok(self.attribute(name)?.and_then(|value| value.as_size()))
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` that decodes a `CGRect` payload.
     pub fn rect_attribute(&self, name: &str) -> Result<Option<AXRect>, AXError> {
         Ok(self.attribute(name)?.and_then(|value| value.as_rect()))
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` that decodes a `CFRange` payload.
     pub fn range_attribute(&self, name: &str) -> Result<Option<AXRange>, AXError> {
         Ok(self.attribute(name)?.and_then(|value| value.as_range()))
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` that decodes an `AXUIElementRef` payload.
     pub fn element_attribute(&self, name: &str) -> Result<Option<Self>, AXError> {
         Ok(self.attribute(name)?.and_then(|value| value.as_element()))
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` that decodes an `AXTextMarkerRef` payload.
     pub fn text_marker_attribute(&self, name: &str) -> Result<Option<AXTextMarker>, AXError> {
         Ok(self
             .attribute(name)?
             .and_then(|value| value.as_text_marker()))
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` that decodes an `AXTextMarkerRangeRef` payload.
     pub fn text_marker_range_attribute(
         &self,
         name: &str,
@@ -243,6 +269,7 @@ impl AXUIElement {
             .and_then(|value| value.as_text_marker_range()))
     }
 
+    /// Wraps `AXUIElementCopyAttributeValues` and decodes the returned range as `AXValue` items.
     pub fn value_array_attribute_range(
         &self,
         name: &str,
@@ -282,6 +309,7 @@ impl AXUIElement {
         }
     }
 
+    /// Wraps `AXUIElementCopyAttributeValues` and keeps only `AXUIElementRef` items.
     pub fn element_array_attribute_range(
         &self,
         name: &str,
@@ -295,6 +323,7 @@ impl AXUIElement {
             .collect())
     }
 
+    /// Builds on `AXUIElementGetAttributeValueCount` plus `AXUIElementCopyAttributeValues` to fetch an entire element array attribute.
     pub fn element_array_attribute(&self, name: &str) -> Result<Vec<Self>, AXError> {
         let count = self.attribute_value_count(name)?;
         if count == 0 {
@@ -303,10 +332,12 @@ impl AXUIElement {
         self.element_array_attribute_range(name, 0, count)
     }
 
+    /// Convenience wrapper for the `kAXChildrenAttribute` element array.
     pub fn children(&self) -> Result<Vec<Self>, AXError> {
         self.element_array_attribute("AXChildren")
     }
 
+    /// Wraps `AXUIElementSetAttributeValue`.
     pub fn set_attribute(&self, name: &str, value: &AXValue) -> Result<(), AXError> {
         let name = internal::make_cstring(name)?;
         // SAFETY: FFI call with valid arguments
@@ -323,51 +354,61 @@ impl AXUIElement {
         }
     }
 
+    /// Convenience wrapper over `AXUIElementSetAttributeValue` for string payloads.
     pub fn set_string_attribute(&self, name: &str, value: &str) -> Result<(), AXError> {
         let value = AXValue::from_string(value)?;
         self.set_attribute(name, &value)
     }
 
+    /// Convenience wrapper over `AXUIElementSetAttributeValue` for boolean payloads.
     pub fn set_bool_attribute(&self, name: &str, value: bool) -> Result<(), AXError> {
         let value = AXValue::from_bool(value);
         self.set_attribute(name, &value)
     }
 
+    /// Convenience wrapper over `AXUIElementSetAttributeValue` for integer payloads.
     pub fn set_i64_attribute(&self, name: &str, value: i64) -> Result<(), AXError> {
         let value = AXValue::from_i64(value);
         self.set_attribute(name, &value)
     }
 
+    /// Convenience wrapper over `AXUIElementSetAttributeValue` for floating-point payloads.
     pub fn set_f64_attribute(&self, name: &str, value: f64) -> Result<(), AXError> {
         let value = AXValue::from_f64(value);
         self.set_attribute(name, &value)
     }
 
+    /// Convenience wrapper over `AXUIElementSetAttributeValue` for `CGPoint` payloads.
     pub fn set_point_attribute(&self, name: &str, value: AXPoint) -> Result<(), AXError> {
         let value = AXValue::from_point(value).ok_or(AXError::Failure)?;
         self.set_attribute(name, &value)
     }
 
+    /// Convenience wrapper over `AXUIElementSetAttributeValue` for `CGSize` payloads.
     pub fn set_size_attribute(&self, name: &str, value: AXSize) -> Result<(), AXError> {
         let value = AXValue::from_size(value).ok_or(AXError::Failure)?;
         self.set_attribute(name, &value)
     }
 
+    /// Convenience wrapper over `AXUIElementSetAttributeValue` for `CGRect` payloads.
     pub fn set_rect_attribute(&self, name: &str, value: AXRect) -> Result<(), AXError> {
         let value = AXValue::from_rect(value).ok_or(AXError::Failure)?;
         self.set_attribute(name, &value)
     }
 
+    /// Convenience wrapper over `AXUIElementSetAttributeValue` for `CFRange` payloads.
     pub fn set_range_attribute(&self, name: &str, value: AXRange) -> Result<(), AXError> {
         let value = AXValue::from_range(value).ok_or(AXError::Failure)?;
         self.set_attribute(name, &value)
     }
 
+    /// Convenience wrapper over `AXUIElementSetAttributeValue` for `AXUIElementRef` payloads.
     pub fn set_element_attribute(&self, name: &str, value: &Self) -> Result<(), AXError> {
         let value = AXValue::from_element(value).ok_or(AXError::Failure)?;
         self.set_attribute(name, &value)
     }
 
+    /// Wraps `AXUIElementCopyMultipleAttributeValues`.
     pub fn copy_multiple_attribute_values(
         &self,
         names: &[&str],
@@ -396,6 +437,7 @@ impl AXUIElement {
         }
     }
 
+    /// Wraps `AXUIElementCopyParameterizedAttributeNames`.
     pub fn parameterized_attribute_names(&self) -> Result<Vec<String>, AXError> {
         let mut raw = core::ptr::null_mut();
         // SAFETY: FFI call with valid arguments
@@ -411,6 +453,7 @@ impl AXUIElement {
         Ok(raw_to_string_vec(raw))
     }
 
+    /// Wraps `AXUIElementCopyParameterizedAttributeValue`.
     pub fn parameterized_attribute(
         &self,
         name: &str,
@@ -440,6 +483,7 @@ impl AXUIElement {
         }
     }
 
+    /// Wraps `AXUIElementCopyActionNames`.
     pub fn action_names(&self) -> Result<Vec<String>, AXError> {
         let mut raw = core::ptr::null_mut();
         // SAFETY: FFI call with valid arguments
@@ -450,6 +494,7 @@ impl AXUIElement {
         Ok(raw_to_string_vec(raw))
     }
 
+    /// Wraps `AXUIElementCopyActionDescription`.
     pub fn action_description(&self, action: &str) -> Result<Option<String>, AXError> {
         let action = internal::make_cstring(action)?;
         let mut raw = core::ptr::null_mut();
@@ -470,6 +515,7 @@ impl AXUIElement {
         }
     }
 
+    /// Wraps `AXUIElementPerformAction`.
     pub fn perform_action(&self, action: &str) -> Result<(), AXError> {
         let action = internal::make_cstring(action)?;
         // SAFETY: FFI call with valid arguments
@@ -484,6 +530,7 @@ impl AXUIElement {
         }
     }
 
+    /// Wraps `AXUIElementCopyElementAtPosition`.
     pub fn element_at_position(&self, x: f32, y: f32) -> Result<Option<Self>, AXError> {
         let mut raw = core::ptr::null_mut();
         // SAFETY: FFI call with valid arguments
@@ -500,6 +547,7 @@ impl AXUIElement {
         }
     }
 
+    /// Wraps deprecated `AXUIElementPostKeyboardEvent`.
     pub fn post_keyboard_event(
         &self,
         key_char: u16,

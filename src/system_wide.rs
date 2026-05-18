@@ -7,6 +7,7 @@ use crate::ax_ui_element::AXUIElement;
 use crate::bridge;
 
 #[derive(Clone, Debug)]
+/// Wrapper around the system-wide `AXUIElementRef` returned by `AXUIElementCreateSystemWide`.
 pub struct SystemWideElement {
     inner: AXUIElement,
 }
@@ -21,6 +22,7 @@ impl Deref for SystemWideElement {
 
 impl SystemWideElement {
     #[must_use]
+    /// Wraps `AXUIElementCreateSystemWide`.
     pub fn new() -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::system_wide::ax_system_wide_create() };
@@ -30,6 +32,7 @@ impl SystemWideElement {
         })
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` for `kAXFocusedApplicationAttribute`.
     pub fn focused_application(&self) -> Result<Option<AXUIElement>, AXError> {
         copy_system_element(
             self.inner.as_ptr(),
@@ -37,6 +40,7 @@ impl SystemWideElement {
         )
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` for `kAXFocusedUIElementAttribute`.
     pub fn focused_ui_element(&self) -> Result<Option<AXUIElement>, AXError> {
         copy_system_element(
             self.inner.as_ptr(),
@@ -44,6 +48,7 @@ impl SystemWideElement {
         )
     }
 
+    /// Convenience wrapper over `AXUIElementCopyAttributeValue` for `kAXFocusedWindowAttribute`.
     pub fn focused_window(&self) -> Result<Option<AXUIElement>, AXError> {
         copy_system_element(
             self.inner.as_ptr(),
@@ -52,12 +57,14 @@ impl SystemWideElement {
     }
 
     #[must_use]
+    /// Returns the wrapped `AXUIElement` created by `AXUIElementCreateSystemWide`.
     pub fn into_inner(self) -> AXUIElement {
         self.inner
     }
 }
 
 #[must_use]
+/// Returns the system-wide accessibility element from `AXUIElementCreateSystemWide`.
 pub fn system_wide() -> Option<SystemWideElement> {
     SystemWideElement::new()
 }

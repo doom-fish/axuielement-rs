@@ -23,22 +23,39 @@ pub(crate) const K_AX_ERROR_NOT_ENOUGH_PRECISION: i32 = -25_214;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
+/// `ApplicationServices` `AXError` statuses surfaced by the safe wrapper.
 pub enum AXError {
+    /// Mirrors `kAXErrorFailure`.
     Failure,
+    /// Mirrors `kAXErrorIllegalArgument` and carries the failing Rust-side context.
     IllegalArgument(String),
+    /// Mirrors `kAXErrorInvalidUIElement`.
     InvalidUIElement,
+    /// Mirrors `kAXErrorInvalidUIElementObserver`.
     InvalidUIElementObserver,
+    /// Mirrors `kAXErrorCannotComplete`.
     CannotComplete,
+    /// Mirrors `kAXErrorAttributeUnsupported` and carries the unsupported attribute name.
     AttributeUnsupported(String),
+    /// Mirrors `kAXErrorActionUnsupported` and carries the unsupported action name.
     ActionUnsupported(String),
+    /// Mirrors `kAXErrorNotificationUnsupported`.
     NotificationUnsupported,
+    /// Mirrors `kAXErrorNotImplemented`.
     NotImplemented,
+    /// Mirrors `kAXErrorNotificationAlreadyRegistered`.
     NotificationAlreadyRegistered,
+    /// Mirrors `kAXErrorNotificationNotRegistered`.
     NotificationNotRegistered,
+    /// Mirrors `kAXErrorAPIDisabled`.
     APIDisabled,
+    /// Mirrors `kAXErrorNoValue`.
     NoValue,
+    /// Mirrors `kAXErrorParameterizedAttributeUnsupported` and carries the unsupported parameterized attribute name.
     ParameterizedAttributeUnsupported(String),
+    /// Mirrors `kAXErrorNotEnoughPrecision`.
     NotEnoughPrecision,
+    /// Represents an unrecognized `ApplicationServices` `AXError` status code.
     Other(i32),
 }
 
@@ -67,6 +84,7 @@ impl AXError {
     }
 
     #[must_use]
+    /// Returns the raw `ApplicationServices` `AXError` code for this value.
     pub const fn raw_code(&self) -> i32 {
         match self {
             Self::Failure => K_AX_ERROR_FAILURE,
@@ -91,6 +109,7 @@ impl AXError {
     }
 
     #[must_use]
+    /// Wraps the `ApplicationServices` AX error-description lookup for this status code.
     pub fn localized_description(&self) -> String {
         // SAFETY: FFI call with valid arguments
         let handle = unsafe { bridge::ax_error::ax_error_copy_description(self.raw_code()) };

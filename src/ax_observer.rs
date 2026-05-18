@@ -15,12 +15,17 @@ struct ObserverState {
 }
 
 #[derive(Clone, Debug)]
+/// Notification payload produced by an `AXObserver` callback.
 pub struct AXObserverEvent {
+    /// Notification name delivered by `AXObserverAddNotification`.
     pub notification: String,
+    /// Element argument supplied by the `ApplicationServices` observer callback.
     pub element: AXUIElement,
+    /// Optional info payload delivered by `AXObserverCreateWithInfoCallback`.
     pub info: Option<AXValue>,
 }
 
+/// Safe owner of an `ApplicationServices` `AXObserverRef`.
 pub struct AXObserver {
     observer: *mut c_void,
     registrations: Vec<(AXUIElement, std::ffi::CString)>,
@@ -136,11 +141,13 @@ impl Drop for AXObserver {
 
 impl AXObserver {
     #[must_use]
+    /// Wraps `AXObserverGetTypeID`.
     pub fn type_id() -> usize {
         // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_observer::ax_observer_get_type_id() }
     }
 
+    /// Wraps `AXObserverCreate`.
     pub fn new<F>(pid: i32, callback: F) -> Result<Self, AXError>
     where
         F: Fn(&AXObserverEvent) + Send + Sync + 'static,
@@ -148,6 +155,7 @@ impl AXObserver {
         Self::new_inner(pid, callback, false)
     }
 
+    /// Wraps `AXObserverCreateWithInfoCallback`.
     pub fn new_with_info<F>(pid: i32, callback: F) -> Result<Self, AXError>
     where
         F: Fn(&AXObserverEvent) + Send + Sync + 'static,
@@ -185,6 +193,7 @@ impl AXObserver {
         })
     }
 
+    /// Wraps `AXObserverAddNotification`.
     pub fn add_notification(
         &mut self,
         element: &AXUIElement,
@@ -214,22 +223,26 @@ impl AXObserver {
         Ok(())
     }
 
+    /// Schedules the observer run-loop source returned by `AXObserverGetRunLoopSource` on the current loop.
     pub fn schedule_on_current_run_loop(&self) {
         // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_observer::ax_observer_schedule_on_current_run_loop(self.observer) };
     }
 
+    /// Unschedules the observer run-loop source returned by `AXObserverGetRunLoopSource` from the current loop.
     pub fn unschedule_from_run_loop(&self) {
         // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_observer::ax_observer_unschedule_from_run_loop(self.observer) };
     }
 }
 
+/// Wraps `CFRunLoopRun` while waiting for Accessibility notifications.
 pub fn run_current_run_loop() {
     // SAFETY: FFI boundary with properly validated inputs
     unsafe { bridge::ax_observer::ax_run_current_run_loop() };
 }
 
+/// Wraps `CFRunLoopStop` for the current run loop.
 pub fn stop_current_run_loop() {
     // SAFETY: FFI boundary with properly validated inputs
     unsafe { bridge::ax_observer::ax_stop_current_run_loop() };

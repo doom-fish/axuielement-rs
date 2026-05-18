@@ -10,53 +10,85 @@ use crate::{bridge, internal};
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
+/// Rust representation of the `CGPoint` payload used with `AXValueCreate` and `AXValueGetValue`.
 pub struct AXPoint {
+    /// Mirrors the `CGPoint.x` coordinate carried by `kAXValueTypeCGPoint`.
     pub x: f64,
+    /// Mirrors the `CGPoint.y` coordinate carried by `kAXValueTypeCGPoint`.
     pub y: f64,
 }
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
+/// Rust representation of the `CGSize` payload used with `AXValueCreate` and `AXValueGetValue`.
 pub struct AXSize {
+    /// Mirrors the `CGSize.width` field carried by `kAXValueTypeCGSize`.
     pub width: f64,
+    /// Mirrors the `CGSize.height` field carried by `kAXValueTypeCGSize`.
     pub height: f64,
 }
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
+/// Rust representation of the `CGRect` payload used with `AXValueCreate` and `AXValueGetValue`.
 pub struct AXRect {
+    /// Mirrors the `CGRect.origin` field carried by `kAXValueTypeCGRect`.
     pub origin: AXPoint,
+    /// Mirrors the `CGRect.size` field carried by `kAXValueTypeCGRect`.
     pub size: AXSize,
 }
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+/// Rust representation of the `CFRange` payload used with `AXValueCreate` and `AXValueGetValue`.
 pub struct AXRange {
+    /// Mirrors the `CFRange.location` field carried by `kAXValueTypeCFRange`.
     pub location: isize,
+    /// Mirrors the `CFRange.length` field carried by `kAXValueTypeCFRange`.
     pub length: isize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
+/// Payload kinds carried by `AXValueGetType` and the crate bridge for Accessibility values.
 pub enum AXValueKind {
+    /// Represents a null placeholder in the bridge value transport.
     Null,
+    /// Represents a string payload copied from an Accessibility attribute value.
     String,
+    /// Represents a boolean payload copied from an Accessibility attribute value.
     Bool,
+    /// Represents an integer payload copied from an Accessibility attribute value.
     Integer,
+    /// Represents a floating-point payload copied from an Accessibility attribute value.
     Float,
+    /// Represents an `AXUIElementRef` payload copied from an Accessibility attribute value.
     Element,
+    /// Represents an array payload copied from an Accessibility attribute value.
     Array,
+    /// Represents the `kAXValueTypeCGPoint` payload kind.
     Point,
+    /// Represents the `kAXValueTypeCGSize` payload kind.
     Size,
+    /// Represents the `kAXValueTypeCGRect` payload kind.
     Rect,
+    /// Represents the `kAXValueTypeCFRange` payload kind.
     Range,
+    /// Represents the `kAXValueTypeAXError` payload kind.
     Error,
+    /// Represents an `AXTextMarkerRef` payload copied from an Accessibility attribute value.
     TextMarker,
+    /// Represents an `AXTextMarkerRangeRef` payload copied from an Accessibility attribute value.
     TextMarkerRange,
+    /// Represents opaque data copied from an Accessibility attribute value.
     Data,
+    /// Represents a dictionary payload copied from an Accessibility attribute value.
     Dictionary,
+    /// Represents an attributed-string payload copied from an Accessibility attribute value.
     AttributedString,
+    /// Represents a URL payload copied from an Accessibility attribute value.
     Url,
+    /// Represents a payload kind the bridge could not map to a known `ApplicationServices` tag.
     Unknown,
 }
 
@@ -87,6 +119,7 @@ impl AXValueKind {
 }
 
 #[repr(transparent)]
+/// Owned wrapper around an `ApplicationServices` `AXValueRef` or bridged Accessibility payload.
 pub struct AXValue {
     raw: *mut c_void,
 }
@@ -123,23 +156,27 @@ impl fmt::Debug for AXValue {
 
 impl AXValue {
     #[must_use]
+    /// Wraps `AXValueGetTypeID`.
     pub fn type_id() -> usize {
         // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_value::ax_value_get_type_id() }
     }
 
     #[must_use]
+    /// Returns the payload kind reported by `AXValueGetType` or the bridge equivalent for non-AXValue payloads.
     pub fn kind(&self) -> AXValueKind {
         // SAFETY: pointer is guaranteed valid from the bridge
         AXValueKind::from_raw(unsafe { bridge::ax_value::ax_value_kind(self.raw) })
     }
 
     #[must_use]
+    /// Returns whether this value is the bridge null placeholder.
     pub fn is_null(&self) -> bool {
         self.kind() == AXValueKind::Null
     }
 
     #[must_use]
+    /// Returns a string payload copied from an Accessibility value.
     pub fn as_string(&self) -> Option<String> {
         // SAFETY: FFI call with valid arguments
         let handle = unsafe { bridge::ax_value::ax_value_copy_string(self.raw) };
@@ -148,6 +185,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Returns a boolean payload copied from an Accessibility value.
     pub fn as_bool(&self) -> Option<bool> {
         let mut value = false;
         // SAFETY: FFI boundary with properly validated inputs
@@ -155,6 +193,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Returns an integer payload copied from an Accessibility value.
     pub fn as_i64(&self) -> Option<i64> {
         let mut value = 0_i64;
         // SAFETY: FFI boundary with properly validated inputs
@@ -162,6 +201,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Returns a floating-point payload copied from an Accessibility value.
     pub fn as_f64(&self) -> Option<f64> {
         let mut value = 0.0_f64;
         // SAFETY: FFI boundary with properly validated inputs
@@ -169,6 +209,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Wraps `AXValueGetValue` for `kAXValueTypeCGPoint`.
     pub fn as_point(&self) -> Option<AXPoint> {
         let mut value = AXPoint::default();
         // SAFETY: FFI boundary with properly validated inputs
@@ -176,6 +217,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Wraps `AXValueGetValue` for `kAXValueTypeCGSize`.
     pub fn as_size(&self) -> Option<AXSize> {
         let mut value = AXSize::default();
         // SAFETY: FFI boundary with properly validated inputs
@@ -183,6 +225,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Wraps `AXValueGetValue` for `kAXValueTypeCGRect`.
     pub fn as_rect(&self) -> Option<AXRect> {
         let mut value = AXRect::default();
         // SAFETY: FFI boundary with properly validated inputs
@@ -190,6 +233,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Wraps `AXValueGetValue` for `kAXValueTypeCFRange`.
     pub fn as_range(&self) -> Option<AXRange> {
         let mut value = AXRange::default();
         // SAFETY: FFI boundary with properly validated inputs
@@ -197,6 +241,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Wraps `AXValueGetValue` for `kAXValueTypeAXError`.
     pub fn as_error(&self) -> Option<AXError> {
         let mut status = 0_i32;
         // SAFETY: FFI boundary with properly validated inputs
@@ -205,6 +250,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Returns an `AXUIElementRef` payload copied from an Accessibility value.
     pub fn as_element(&self) -> Option<AXUIElement> {
         (self.kind() == AXValueKind::Element).then(|| {
             // SAFETY: FFI call with valid arguments
@@ -215,6 +261,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Returns an `AXTextMarkerRef` payload copied from an Accessibility value.
     pub fn as_text_marker(&self) -> Option<AXTextMarker> {
         (self.kind() == AXValueKind::TextMarker).then(|| {
             // SAFETY: FFI call with valid arguments
@@ -225,6 +272,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Returns an `AXTextMarkerRangeRef` payload copied from an Accessibility value.
     pub fn as_text_marker_range(&self) -> Option<AXTextMarkerRange> {
         (self.kind() == AXValueKind::TextMarkerRange).then(|| {
             // SAFETY: FFI call with valid arguments
@@ -235,6 +283,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Returns an array payload copied from an Accessibility value.
     pub fn as_array(&self) -> Option<Vec<Self>> {
         if self.kind() != AXValueKind::Array {
             return None;
@@ -255,6 +304,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Returns a dictionary payload copied from an Accessibility value.
     pub fn as_dictionary(&self) -> Option<Vec<(String, Self)>> {
         if self.kind() != AXValueKind::Dictionary {
             return None;
@@ -281,6 +331,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Returns opaque bytes copied from an Accessibility value.
     pub fn as_data(&self) -> Option<Vec<u8>> {
         if self.kind() != AXValueKind::Data {
             return None;
@@ -299,6 +350,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Creates the bridge null placeholder for an empty Accessibility payload.
     pub fn null() -> Self {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_null() };
@@ -306,6 +358,7 @@ impl AXValue {
         unsafe { Self::from_raw(raw) }
     }
 
+    /// Creates a string payload that can be passed through Accessibility value APIs.
     pub fn from_string(value: &str) -> Result<Self, AXError> {
         let value = internal::make_cstring(value)?;
         // SAFETY: FFI call with valid arguments
@@ -318,6 +371,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Creates a boolean payload that can be passed through Accessibility value APIs.
     pub fn from_bool(value: bool) -> Self {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_bool(value) };
@@ -326,6 +380,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Creates an integer payload that can be passed through Accessibility value APIs.
     pub fn from_i64(value: i64) -> Self {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_i64(value) };
@@ -334,6 +389,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Creates a floating-point payload that can be passed through Accessibility value APIs.
     pub fn from_f64(value: f64) -> Self {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_f64(value) };
@@ -342,6 +398,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Wraps `AXValueCreate` for `kAXValueTypeCGPoint`.
     pub fn from_point(value: AXPoint) -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_point(value) };
@@ -350,6 +407,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Wraps `AXValueCreate` for `kAXValueTypeCGSize`.
     pub fn from_size(value: AXSize) -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_size(value) };
@@ -358,6 +416,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Wraps `AXValueCreate` for `kAXValueTypeCGRect`.
     pub fn from_rect(value: AXRect) -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_rect(value) };
@@ -366,6 +425,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Wraps `AXValueCreate` for `kAXValueTypeCFRange`.
     pub fn from_range(value: AXRange) -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_range(value) };
@@ -374,6 +434,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Wraps `AXValueCreate` for `kAXValueTypeAXError`.
     pub fn from_error(error: AXError) -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_error_code(error.raw_code()) };
@@ -382,6 +443,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Boxes an `AXUIElementRef` payload for `AXUIElementSetAttributeValue` and related APIs.
     pub fn from_element(value: &AXUIElement) -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_element(value.as_ptr()) };
@@ -390,6 +452,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Boxes an `AXTextMarkerRef` payload for Accessibility value APIs.
     pub fn from_text_marker(value: &AXTextMarker) -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_text_marker(value.as_ptr()) };
@@ -398,6 +461,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Boxes an `AXTextMarkerRangeRef` payload for Accessibility value APIs.
     pub fn from_text_marker_range(value: &AXTextMarkerRange) -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_text_marker_range(value.as_ptr()) };
@@ -406,6 +470,7 @@ impl AXValue {
     }
 
     #[must_use]
+    /// Boxes opaque bytes for Accessibility value APIs.
     pub fn from_data(bytes: &[u8]) -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_value::ax_value_create_data(bytes.as_ptr(), bytes.len()) };
@@ -413,6 +478,7 @@ impl AXValue {
         (!raw.is_null()).then(|| unsafe { Self::from_raw(raw) })
     }
 
+    /// Boxes an array payload for Accessibility value APIs.
     pub fn from_array(values: &[&AXValue]) -> Option<Self> {
         let handles = values
             .iter()
@@ -425,6 +491,7 @@ impl AXValue {
         (!raw.is_null()).then(|| unsafe { Self::from_raw(raw) })
     }
 
+    /// Boxes a dictionary payload for Accessibility value APIs.
     pub fn from_dictionary(entries: &[(&str, &AXValue)]) -> Result<Option<Self>, AXError> {
         let (keys, raw_keys) =
             internal::make_cstring_vec(&entries.iter().map(|(key, _)| *key).collect::<Vec<_>>())?;

@@ -6,6 +6,7 @@ use core::fmt;
 use crate::bridge;
 
 #[repr(transparent)]
+/// Owned wrapper around an `ApplicationServices` `AXTextMarkerRef`.
 pub struct AXTextMarker {
     raw: *mut c_void,
 }
@@ -42,12 +43,14 @@ impl fmt::Debug for AXTextMarker {
 
 impl AXTextMarker {
     #[must_use]
+    /// Wraps `AXTextMarkerGetTypeID`.
     pub fn type_id() -> usize {
         // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_text_marker::ax_text_marker_get_type_id() }
     }
 
     #[must_use]
+    /// Wraps `AXTextMarkerCreate`.
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         let raw =
             // SAFETY: FFI boundary with properly validated inputs
@@ -61,17 +64,20 @@ impl AXTextMarker {
     }
 
     #[must_use]
+    /// Wraps `AXTextMarkerGetLength`.
     pub fn len(&self) -> usize {
         // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_text_marker::ax_text_marker_len(self.raw) }
     }
 
     #[must_use]
+    /// Returns whether `AXTextMarkerGetLength` reports an empty marker.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     #[must_use]
+    /// Copies the bytes exposed by `AXTextMarkerGetBytePtr`.
     pub fn bytes(&self) -> Vec<u8> {
         let len = self.len();
         let mut bytes = vec![0_u8; len];
@@ -99,6 +105,7 @@ impl AXTextMarker {
 }
 
 #[repr(transparent)]
+/// Owned wrapper around an `ApplicationServices` `AXTextMarkerRangeRef`.
 pub struct AXTextMarkerRange {
     raw: *mut c_void,
 }
@@ -133,12 +140,14 @@ impl fmt::Debug for AXTextMarkerRange {
 
 impl AXTextMarkerRange {
     #[must_use]
+    /// Wraps `AXTextMarkerGetTypeID`.
     pub fn type_id() -> usize {
         // SAFETY: FFI boundary with properly validated inputs
         unsafe { bridge::ax_text_marker::ax_text_marker_range_get_type_id() }
     }
 
     #[must_use]
+    /// Wraps `AXTextMarkerRangeCreate`.
     pub fn new(start: &AXTextMarker, end: &AXTextMarker) -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe {
@@ -153,6 +162,7 @@ impl AXTextMarkerRange {
     }
 
     #[must_use]
+    /// Wraps `AXTextMarkerRangeCreateWithBytes`.
     pub fn from_bytes(start: &[u8], end: &[u8]) -> Option<Self> {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe {
@@ -172,6 +182,7 @@ impl AXTextMarkerRange {
     }
 
     #[must_use]
+    /// Wraps `AXTextMarkerRangeCopyStartMarker`.
     pub fn start_marker(&self) -> AXTextMarker {
         let raw =
             // SAFETY: FFI boundary with properly validated inputs
@@ -181,6 +192,7 @@ impl AXTextMarkerRange {
     }
 
     #[must_use]
+    /// Wraps `AXTextMarkerRangeCopyEndMarker`.
     pub fn end_marker(&self) -> AXTextMarker {
         // SAFETY: FFI call with valid arguments
         let raw = unsafe { bridge::ax_text_marker::ax_text_marker_range_copy_end_marker(self.raw) };

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.1] - 2026-05-18
+
+### Changed
+
+- Added one-line rustdoc coverage across the safe AXUIElement wrapper, value, observer, notification, text-marker, trust, and constant APIs, bringing rustdoc item coverage to 100%.
+
 ## [0.8.0] - 2026-05-18
 
 ### Changed
