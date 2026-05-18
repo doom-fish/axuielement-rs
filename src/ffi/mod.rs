@@ -11,16 +11,14 @@
 
 use core::ffi::{c_char, c_void};
 
-pub use apple_cf::raw::{CFAllocatorRef, CFArrayRef, CFDictionaryRef, CFStringRef, CFTypeRef};
-
-pub type CFIndex = isize;
-pub type CFTypeID = usize;
+pub use apple_cf::raw::{
+    CFAllocatorRef, CFArrayRef, CFDictionaryRef, CFIndex, CFStringRef, CFTypeID, CFTypeRef,
+    CGCharCode, CGKeyCode,
+};
 
 pub type AXUIElementRef = *mut c_void;
 pub type AXError = i32;
 pub type pid_t = i32;
-pub type CGCharCode = u16;
-pub type CGKeyCode = u16;
 pub type AXCopyMultipleAttributeOptions = u32;
 
 pub const kAXErrorSuccess: AXError = 0;

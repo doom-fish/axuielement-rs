@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0] - 2026-05-18
+
+### Changed
+
+- Breaking: `axuielement::ffi` now re-exports `CFIndex`, `CFTypeID`, `CGCharCode`, and `CGKeyCode` from `apple-cf`'s raw CoreFoundation/CoreGraphics bindings instead of defining local aliases.
+- Raised the `apple-cf` dependency requirement to `>=0.9, <0.10` so the crate can share the upstream `CGCharCode` and `CGKeyCode` raw types.
+
 ## [0.7.0] - 2026-05-18
 
 ### Changed
