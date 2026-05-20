@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.0] - 2026-05-20
+
+### Added
+
+- `async_api` module behind the `async` feature, providing executor-agnostic async wrappers for `AXObserver` notifications via `AXNotificationStream`. Uses `doom-fish-utils::stream`.
+
 ## [0.8.1] - 2026-05-18
 
 ### Changed

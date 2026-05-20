@@ -1,6 +1,6 @@
 [package]
 name = "axuielement"
-version = "0.8.1"
+version = "0.9.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/doom-fish/axuielement-rs"
@@ -29,6 +29,7 @@ include = [
 [features]
 default = ["raw-ffi"]
 raw-ffi = []
+async = ["dep:doom-fish-utils"]
 
 [lints.rust]
 
@@ -43,8 +44,10 @@ crate-type = ["lib"]
 
 [dependencies]
 apple-cf = { version = ">=0.9, <0.10", default-features = false, features = ["cg"] }
+doom-fish-utils = { path = "../doom-fish-utils", version = ">=0.1, <0.4", optional = true, features = ["futures-stream"] }
 
 [dev-dependencies]
+pollster = "0.3"
 regex-lite = "0.1"
 
 [package.metadata.docs.rs]
@@ -55,6 +58,14 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [badges]
 maintenance = { status = "actively-developed" }
+
+[[test]]
+name = "async_notification_stream_tests"
+required-features = ["async"]
+
+[[example]]
+name = "11_async_notification_stream"
+required-features = ["async"]
 
 [profile.release]
 debug = "full"

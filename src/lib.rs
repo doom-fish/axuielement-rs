@@ -25,6 +25,9 @@
 mod bridge;
 mod internal;
 
+#[cfg(feature = "async")]
+#[cfg_attr(docsrs, doc(cfg(feature = "async")))]
+pub mod async_api;
 pub mod ax_action;
 pub mod ax_attribute;
 pub mod ax_error;
@@ -56,6 +59,8 @@ pub use system_wide::{system_wide, SystemWideElement};
 
 /// Common imports.
 pub mod prelude {
+    #[cfg(feature = "async")]
+    pub use crate::async_api::AXNotificationStream;
     pub use crate::ax_action;
     pub use crate::ax_attribute;
     pub use crate::ax_notification;
