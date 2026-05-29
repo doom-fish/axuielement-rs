@@ -49,8 +49,11 @@ unsafe extern "C" fn observer_callback(
         Some(unsafe { AXUIElement::from_raw(element) })
     };
     if !observer.is_null() {
+        // Balance the per-callback retain performed by the Swift trampoline
+        // (`retainObject(box)`) without removing the run-loop source or
+        // unregistering the observer; that teardown only happens on owner drop.
         // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_observer::ax_observer_release(observer) };
+        unsafe { bridge::ax_observer::ax_observer_release_callback(observer) };
     }
     let Some(notification) = notification_text else {
         return;
@@ -91,8 +94,11 @@ unsafe extern "C" fn observer_info_callback(
     // SAFETY: pointer is guaranteed valid from the bridge
     let event_info = (!info.is_null()).then(|| unsafe { AXValue::from_raw(info) });
     if !observer.is_null() {
+        // Balance the per-callback retain performed by the Swift trampoline
+        // (`retainObject(box)`) without removing the run-loop source or
+        // unregistering the observer; that teardown only happens on owner drop.
         // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_observer::ax_observer_release(observer) };
+        unsafe { bridge::ax_observer::ax_observer_release_callback(observer) };
     }
     let Some(notification) = notification_text else {
         return;

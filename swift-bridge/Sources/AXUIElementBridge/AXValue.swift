@@ -509,6 +509,30 @@ public func ax_value_create_null() -> UnsafeMutableRawPointer {
     retainObject(NSNull())
 }
 
+/// Cross-language ABI check for the geometry payloads shared with Rust.
+///
+/// `AXPoint`, `AXSize`, `AXRect` and `AXRange` on the Rust side are `#[repr(C)]`
+/// mirrors of `CGPoint`, `CGSize`, `CGRect` and `CFRange`. They are passed by
+/// value across the `@_cdecl` FFI boundary (`ax_value_create_point` and the
+/// `ax_value_get_*` getters), so any size/stride/alignment drift would silently
+/// corrupt the marshalled values. Returns `true` only when Swift's
+/// `MemoryLayout` for all four types matches the values pinned on the Rust side.
+@_cdecl("ax_value_verify_layout")
+public func ax_value_verify_layout() -> Bool {
+    MemoryLayout<CGPoint>.size == 16
+        && MemoryLayout<CGPoint>.stride == 16
+        && MemoryLayout<CGPoint>.alignment == 8
+        && MemoryLayout<CGSize>.size == 16
+        && MemoryLayout<CGSize>.stride == 16
+        && MemoryLayout<CGSize>.alignment == 8
+        && MemoryLayout<CGRect>.size == 32
+        && MemoryLayout<CGRect>.stride == 32
+        && MemoryLayout<CGRect>.alignment == 8
+        && MemoryLayout<CFRange>.size == 16
+        && MemoryLayout<CFRange>.stride == 16
+        && MemoryLayout<CFRange>.alignment == 8
+}
+
 @_cdecl("ax_value_create_string")
 public func ax_value_create_string(_ value: UnsafePointer<CChar>?) -> UnsafeMutableRawPointer? {
     guard let string = stringFromCString(value) else {

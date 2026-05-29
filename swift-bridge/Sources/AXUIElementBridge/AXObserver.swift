@@ -149,6 +149,22 @@ public func ax_observer_release(_ handle: UnsafeMutableRawPointer?) {
     releaseObject(handle)
 }
 
+/// Balances the per-callback `retainObject(box)` performed by the observer
+/// trampolines.
+///
+/// Each delivered notification hands Rust a freshly retained (`+1`) observer
+/// handle. The Rust callback must drop that reference once it is done, but it
+/// must **not** tear down the run-loop source or unregister the observer the
+/// way `ax_observer_release` does — otherwise the observer would stop firing
+/// after the first event. This entry point therefore only performs the
+/// matching `-1`, leaving the run-loop source scheduled and the registry entry
+/// intact. The real teardown still happens exactly once, when the owning Rust
+/// `AXObserver` is dropped and calls `ax_observer_release`.
+@_cdecl("ax_observer_release_callback")
+public func ax_observer_release_callback(_ handle: UnsafeMutableRawPointer?) {
+    releaseObject(handle)
+}
+
 @_cdecl("ax_observer_schedule_on_current_run_loop")
 public func ax_observer_schedule_on_current_run_loop(_ handle: UnsafeMutableRawPointer?) {
     guard let handle else {

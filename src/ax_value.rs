@@ -48,6 +48,59 @@ pub struct AXRange {
     pub length: isize,
 }
 
+// MARK: - ABI Layout Assertions
+//
+// `AXPoint`, `AXSize`, `AXRect` and `AXRange` are `#[repr(C)]` mirrors of
+// CoreGraphics/CoreFoundation `CGPoint`, `CGSize`, `CGRect` and `CFRange`. They
+// cross the Rust <-> Swift `@_cdecl` FFI boundary by value (`ax_value_create_*`)
+// and via out-pointers (`ax_value_get_*`), so any drift in size or alignment
+// would silently corrupt the marshalled geometry.
+//
+// These compile-time assertions pin the layout against the audited `apple-cf`
+// CoreGraphics/CoreFoundation structs. The crate MSRV (1.76) predates
+// `core::mem::offset_of!` (stabilised in 1.77), so field offsets are guarded
+// indirectly through `size_of`/`align_of` parity with the real CG/CF types plus
+// the cross-language `ax_value_verify_layout` check in
+// `tests/ffi_layout_tests.rs`.
+use core::mem::{align_of, size_of};
+
+use apple_cf::raw::{CFRange, CGPoint, CGRect, CGSize};
+
+const _: () = assert!(size_of::<AXPoint>() == size_of::<CGPoint>());
+const _: () = assert!(align_of::<AXPoint>() == align_of::<CGPoint>());
+const _: () = assert!(size_of::<AXPoint>() == 16);
+const _: () = assert!(align_of::<AXPoint>() == 8);
+
+const _: () = assert!(size_of::<AXSize>() == size_of::<CGSize>());
+const _: () = assert!(align_of::<AXSize>() == align_of::<CGSize>());
+const _: () = assert!(size_of::<AXSize>() == 16);
+const _: () = assert!(align_of::<AXSize>() == 8);
+
+const _: () = assert!(size_of::<AXRect>() == size_of::<CGRect>());
+const _: () = assert!(align_of::<AXRect>() == align_of::<CGRect>());
+const _: () = assert!(size_of::<AXRect>() == 32);
+const _: () = assert!(align_of::<AXRect>() == 8);
+
+const _: () = assert!(size_of::<AXRange>() == size_of::<CFRange>());
+const _: () = assert!(align_of::<AXRange>() == align_of::<CFRange>());
+const _: () = assert!(size_of::<AXRange>() == 16);
+const _: () = assert!(align_of::<AXRange>() == 8);
+
+/// Cross-language ABI check for the geometry payloads (`AXPoint`, `AXSize`,
+/// `AXRect`, `AXRange`) shared with the Swift bridge.
+///
+/// Returns `true` only when the Swift `MemoryLayout` (size, stride and
+/// alignment) of `CGPoint`, `CGSize`, `CGRect` and `CFRange` matches the values
+/// pinned on the Rust side. A `false` return means the Rust and Swift layouts
+/// genuinely disagree, which is a real ABI bug. Verified by
+/// `tests/ffi_layout_tests.rs`.
+#[must_use]
+pub fn verify_layout() -> bool {
+    // SAFETY: takes no arguments and only reads compile-time `MemoryLayout`
+    // constants in the Swift bridge.
+    unsafe { bridge::ax_value::ax_value_verify_layout() }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 /// Payload kinds carried by `AXValueGetType` and the crate bridge for Accessibility values.

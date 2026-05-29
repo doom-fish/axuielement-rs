@@ -9,6 +9,7 @@ extern "C" {
     pub fn ax_string_copy_utf8(handle: Handle, buffer: *mut c_char, capacity: usize) -> bool;
 
     pub fn ax_value_get_type_id() -> usize;
+    pub fn ax_value_verify_layout() -> bool;
     pub fn ax_value_retain(handle: Handle) -> Handle;
     pub fn ax_value_release(handle: Handle);
     pub fn ax_value_kind(handle: Handle) -> u32;

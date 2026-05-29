@@ -30,6 +30,7 @@ extern "C" {
         out_observer: *mut Handle,
     ) -> AXStatus;
     pub fn ax_observer_release(handle: Handle);
+    pub fn ax_observer_release_callback(handle: Handle);
     pub fn ax_observer_schedule_on_current_run_loop(handle: Handle);
     pub fn ax_observer_unschedule_from_run_loop(handle: Handle);
     pub fn ax_run_current_run_loop();
