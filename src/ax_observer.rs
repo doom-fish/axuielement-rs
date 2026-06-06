@@ -69,11 +69,14 @@ unsafe extern "C" fn observer_callback(
     let Ok(callback) = state.callback.lock() else {
         return;
     };
-    callback(&AXObserverEvent {
+    let event = AXObserverEvent {
         notification,
         element,
         info: None,
-    });
+    };
+    // The user callback is invoked on a CFRunLoop across the `extern "C"`
+    // boundary; an unwinding panic here would be undefined behaviour. Contain it.
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| callback(&event)));
 }
 
 unsafe extern "C" fn observer_info_callback(
@@ -114,11 +117,14 @@ unsafe extern "C" fn observer_info_callback(
     let Ok(callback) = state.callback.lock() else {
         return;
     };
-    callback(&AXObserverEvent {
+    let event = AXObserverEvent {
         notification,
         element,
         info: event_info,
-    });
+    };
+    // The user callback is invoked on a CFRunLoop across the `extern "C"`
+    // boundary; an unwinding panic here would be undefined behaviour. Contain it.
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| callback(&event)));
 }
 
 impl Drop for AXObserver {
