@@ -13,8 +13,12 @@ let package = Package(
             targets: ["AXUIElementBridge"])
     ],
     targets: [
+        .systemLibrary(
+            name: "AXUIElementLegacyAPI",
+            path: "Sources/AXUIElementLegacyAPI"),
         .target(
             name: "AXUIElementBridge",
+            dependencies: ["AXUIElementLegacyAPI"],
             path: "Sources/AXUIElementBridge")
     ]
 )

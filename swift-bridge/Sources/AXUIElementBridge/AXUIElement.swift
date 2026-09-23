@@ -1,13 +1,6 @@
 import ApplicationServices
+import AXUIElementLegacyAPI
 import Foundation
-
-@_silgen_name("AXUIElementPostKeyboardEvent")
-private func AXUIElementPostKeyboardEventShim(
-    _ application: AXUIElement,
-    _ keyChar: UInt16,
-    _ virtualKey: UInt16,
-    _ keyDown: Bool
-) -> AXError
 
 @_cdecl("ax_ui_element_get_type_id")
 public func ax_ui_element_get_type_id() -> UInt {
@@ -102,5 +95,5 @@ public func ax_ui_element_post_keyboard_event(
         return AXError.illegalArgument.rawValue
     }
     let element: AXUIElement = unretainedObject(handle)
-    return AXUIElementPostKeyboardEventShim(element, keyChar, virtualKey, keyDown).rawValue
+    return AXLegacyUIElementPostKeyboardEvent(element, keyChar, virtualKey, keyDown).rawValue
 }

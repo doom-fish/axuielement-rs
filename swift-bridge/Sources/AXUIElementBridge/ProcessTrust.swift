@@ -1,15 +1,10 @@
 import ApplicationServices
+import AXUIElementLegacyAPI
 import Foundation
-
-@_silgen_name("AXAPIEnabled")
-private func AXAPIEnabledShim() -> Bool
-
-@_silgen_name("AXMakeProcessTrusted")
-private func AXMakeProcessTrustedShim(_ executablePath: CFString) -> AXError
 
 @_cdecl("ax_process_trust_api_enabled")
 public func ax_process_trust_api_enabled() -> Bool {
-    AXAPIEnabledShim()
+    AXLegacyAPIEnabled()
 }
 
 @_cdecl("ax_process_trust_is_trusted")
@@ -29,5 +24,5 @@ public func ax_process_trust_make_process_trusted(_ executablePath: UnsafePointe
     guard let executablePath, let string = String(validatingUTF8: executablePath) else {
         return AXError.illegalArgument.rawValue
     }
-    return AXMakeProcessTrustedShim(string as CFString).rawValue
+    return AXLegacyMakeProcessTrusted(string as CFString).rawValue
 }

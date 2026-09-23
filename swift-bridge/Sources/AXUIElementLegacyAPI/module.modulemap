@@ -1,0 +1,4 @@
+module AXUIElementLegacyAPI [system] {
+    header "AXUIElementLegacyAPI.h"
+    export *
+}
