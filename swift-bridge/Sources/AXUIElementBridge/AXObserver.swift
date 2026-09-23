@@ -206,3 +206,26 @@ public func ax_run_current_run_loop() {
 public func ax_stop_current_run_loop() {
     CFRunLoopStop(CFRunLoopGetCurrent())
 }
+
+@_cdecl("ax_run_loop_copy_current")
+public func ax_run_loop_copy_current() -> UnsafeMutableRawPointer {
+    retainObject(CFRunLoopGetCurrent())
+}
+
+@_cdecl("ax_run_loop_request_stop")
+public func ax_run_loop_request_stop(_ handle: UnsafeMutableRawPointer?) {
+    guard let handle else {
+        return
+    }
+    let runLoop: CFRunLoop = unretainedObject(handle)
+    CFRunLoopPerformBlock(runLoop, CFRunLoopMode.commonModes.rawValue) {
+        CFRunLoopStop(CFRunLoopGetCurrent())
+    }
+    CFRunLoopStop(runLoop)
+    CFRunLoopWakeUp(runLoop)
+}
+
+@_cdecl("ax_run_loop_release")
+public func ax_run_loop_release(_ handle: UnsafeMutableRawPointer?) {
+    releaseObject(handle)
+}

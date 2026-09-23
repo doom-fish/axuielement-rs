@@ -23,4 +23,10 @@ extern "C" {
     pub fn ax_observer_unschedule_from_run_loop(handle: Handle);
     pub fn ax_run_current_run_loop();
     pub fn ax_stop_current_run_loop();
+    #[cfg(feature = "async")]
+    pub fn ax_run_loop_copy_current() -> Handle;
+    #[cfg(feature = "async")]
+    pub fn ax_run_loop_request_stop(handle: Handle);
+    #[cfg(feature = "async")]
+    pub fn ax_run_loop_release(handle: Handle);
 }

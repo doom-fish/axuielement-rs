@@ -40,14 +40,11 @@ use std::thread::{self, JoinHandle};
 
 use doom_fish_utils::stream::{BoundedAsyncStream, NextItem};
 
+use crate::bridge::ax_observer::{
+    ax_run_current_run_loop, ax_run_loop_copy_current, ax_run_loop_release,
+    ax_run_loop_request_stop,
+};
 use crate::{AXError, AXObserver, AXObserverEvent, AXUIElement};
-
-unsafe extern "C" {
-    fn CFRunLoopGetCurrent() -> *mut c_void;
-    fn CFRunLoopRun();
-    fn CFRunLoopStop(rl: *mut c_void);
-    fn CFRunLoopWakeUp(rl: *mut c_void);
-}
 
 struct ObserverThreadHandle {
     run_loop: *mut c_void,
@@ -59,15 +56,11 @@ unsafe impl Sync for ObserverThreadHandle {}
 
 impl Drop for ObserverThreadHandle {
     fn drop(&mut self) {
-        if !self.run_loop.is_null() {
-            unsafe {
-                CFRunLoopStop(self.run_loop);
-                CFRunLoopWakeUp(self.run_loop);
-            }
-        }
+        unsafe { ax_run_loop_request_stop(self.run_loop) };
         if let Some(join) = self.join.take() {
             let _ = join.join();
         }
+        unsafe { ax_run_loop_release(self.run_loop) };
     }
 }
 
@@ -138,10 +131,10 @@ impl AXNotificationStream {
         let (run_loop_tx, run_loop_rx) = mpsc::sync_channel(1);
         let join = thread::spawn(move || {
             observer.schedule_on_current_run_loop();
-            let run_loop = unsafe { CFRunLoopGetCurrent() };
+            let run_loop = unsafe { ax_run_loop_copy_current() };
             let _ = run_loop_tx.send(run_loop as usize);
-            unsafe { CFRunLoopRun() };
-            observer.unschedule_from_run_loop();
+            unsafe { ax_run_current_run_loop() };
+            drop(observer);
         });
 
         let run_loop = match run_loop_rx.recv() {
@@ -183,5 +176,46 @@ impl AXNotificationStream {
     #[must_use]
     pub fn is_closed(&self) -> bool {
         self.inner.is_closed()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    use crate::bridge::ax_observer::{
+        ax_run_current_run_loop, ax_run_loop_copy_current, ax_run_loop_release,
+        ax_run_loop_request_stop,
+    };
+    use crate::AXObserver;
+
+    #[test]
+    fn a_stop_requested_before_the_loop_runs_is_not_lost() {
+        let pid = i32::try_from(std::process::id()).expect("current pid fits in i32");
+        let (run_loop_tx, run_loop_rx) = mpsc::channel();
+        let (start_tx, start_rx) = mpsc::channel::<()>();
+        let (done_tx, done_rx) = mpsc::channel();
+        thread::spawn(move || {
+            let observer = AXObserver::new(pid, |_| {}).expect("observer");
+            observer.schedule_on_current_run_loop();
+            let run_loop = unsafe { ax_run_loop_copy_current() };
+            run_loop_tx.send(run_loop as usize).expect("send run loop");
+            start_rx.recv().expect("start signal");
+            unsafe { ax_run_current_run_loop() };
+            drop(observer);
+            let _ = done_tx.send(());
+        });
+
+        let run_loop = run_loop_rx.recv().expect("run loop") as *mut core::ffi::c_void;
+        unsafe { ax_run_loop_request_stop(run_loop) };
+        start_tx.send(()).expect("start the run loop");
+        let finished = done_rx.recv_timeout(Duration::from_secs(10));
+        unsafe { ax_run_loop_release(run_loop) };
+        assert!(
+            finished.is_ok(),
+            "a stop requested before CFRunLoopRun started was lost"
+        );
     }
 }
