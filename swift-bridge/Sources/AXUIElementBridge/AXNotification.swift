@@ -5,8 +5,7 @@ import Foundation
 public func ax_notification_add(
     _ observerHandle: UnsafeMutableRawPointer?,
     _ elementHandle: UnsafeMutableRawPointer?,
-    _ notification: UnsafePointer<CChar>?,
-    _ refcon: UnsafeMutableRawPointer?
+    _ notification: UnsafePointer<CChar>?
 ) -> Int32 {
     guard let observerHandle, let elementHandle, let notification else {
         return AXError.illegalArgument.rawValue
@@ -17,7 +16,7 @@ public func ax_notification_add(
         observerBox.observer,
         element,
         String(cString: notification) as CFString,
-        refcon).rawValue
+        nil).rawValue
 }
 
 @_cdecl("ax_notification_remove")

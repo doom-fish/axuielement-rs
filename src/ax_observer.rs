@@ -1,18 +1,17 @@
 //! `AXObserver` notification support.
 
 use core::ffi::c_void;
-use std::sync::{Arc, Mutex};
+use std::ffi::CString;
 
-use crate::ax_error::{AXError, K_AX_ERROR_SUCCESS};
+use doom_fish_utils::callback_context::CallbackContext;
+
+use crate::ax_error::{AXError, K_AX_ERROR_NOTIFICATION_NOT_REGISTERED, K_AX_ERROR_SUCCESS};
 use crate::ax_ui_element::AXUIElement;
 use crate::ax_value::AXValue;
 use crate::{bridge, internal};
 
-type CallbackFn = Box<dyn Fn(&AXObserverEvent) + Send + Sync + 'static>;
-
-struct ObserverState {
-    callback: Mutex<CallbackFn>,
-}
+type ObserverCallback = Box<dyn Fn(&AXObserverEvent) + Send + Sync + 'static>;
+type ObserverContext = CallbackContext<ObserverCallback>;
 
 #[derive(Clone, Debug)]
 /// Notification payload produced by an `AXObserver` callback.
@@ -28,107 +27,39 @@ pub struct AXObserverEvent {
 /// Safe owner of an `ApplicationServices` `AXObserverRef`.
 pub struct AXObserver {
     observer: *mut c_void,
-    registrations: Vec<(AXUIElement, std::ffi::CString)>,
-    state: Arc<ObserverState>,
+    registrations: Vec<(AXUIElement, CString)>,
+    context: ObserverContext,
 }
 
 unsafe impl Send for AXObserver {}
 
 unsafe extern "C" fn observer_callback(
-    observer: *mut c_void,
-    element: *mut c_void,
-    notification: *mut c_void,
-    refcon: *mut c_void,
-) {
-    // SAFETY: FFI call with valid arguments
-    let notification_text = unsafe { internal::string_from_handle(notification) };
-    let event_element = if element.is_null() {
-        None
-    } else {
-        // SAFETY: pointer is guaranteed valid from the bridge
-        Some(unsafe { AXUIElement::from_raw(element) })
-    };
-    if !observer.is_null() {
-        // Balance the per-callback retain performed by the Swift trampoline
-        // (`retainObject(box)`) without removing the run-loop source or
-        // unregistering the observer; that teardown only happens on owner drop.
-        // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_observer::ax_observer_release_callback(observer) };
-    }
-    let Some(notification) = notification_text else {
-        return;
-    };
-    let Some(element) = event_element else {
-        return;
-    };
-    if refcon.is_null() {
-        return;
-    }
-    // SAFETY: FFI call with valid arguments
-    let state = unsafe { &*refcon.cast::<ObserverState>() };
-    let Ok(callback) = state.callback.lock() else {
-        return;
-    };
-    let event = AXObserverEvent {
-        notification,
-        element,
-        info: None,
-    };
-    // The user callback is invoked on a CFRunLoop across the `extern "C"`
-    // boundary; an unwinding panic here would be undefined behaviour. Contain it.
-    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| callback(&event)));
-}
-
-unsafe extern "C" fn observer_info_callback(
-    observer: *mut c_void,
+    context: *mut c_void,
     element: *mut c_void,
     notification: *mut c_void,
     info: *mut c_void,
-    refcon: *mut c_void,
 ) {
-    // SAFETY: FFI call with valid arguments
-    let notification_text = unsafe { internal::string_from_handle(notification) };
-    let event_element = if element.is_null() {
-        None
-    } else {
-        // SAFETY: pointer is guaranteed valid from the bridge
-        Some(unsafe { AXUIElement::from_raw(element) })
-    };
-    // SAFETY: pointer is guaranteed valid from the bridge
-    let event_info = (!info.is_null()).then(|| unsafe { AXValue::from_raw(info) });
-    if !observer.is_null() {
-        // Balance the per-callback retain performed by the Swift trampoline
-        // (`retainObject(box)`) without removing the run-loop source or
-        // unregistering the observer; that teardown only happens on owner drop.
-        // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_observer::ax_observer_release_callback(observer) };
-    }
-    let Some(notification) = notification_text else {
-        return;
-    };
-    let Some(element) = event_element else {
-        return;
-    };
-    if refcon.is_null() {
-        return;
-    }
-    // SAFETY: FFI call with valid arguments
-    let state = unsafe { &*refcon.cast::<ObserverState>() };
-    let Ok(callback) = state.callback.lock() else {
+    let notification = unsafe { internal::string_from_handle(notification) };
+    let element = (!element.is_null()).then(|| unsafe { AXUIElement::from_raw(element) });
+    let info = (!info.is_null()).then(|| unsafe { AXValue::from_raw(info) });
+    let (Some(notification), Some(element)) = (notification, element) else {
         return;
     };
     let event = AXObserverEvent {
         notification,
         element,
-        info: event_info,
+        info,
     };
-    // The user callback is invoked on a CFRunLoop across the `extern "C"`
-    // boundary; an unwinding panic here would be undefined behaviour. Contain it.
-    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| callback(&event)));
+    let _ = unsafe {
+        ObserverContext::with(context, "AXObserver callback", |callback| {
+            callback(&event);
+        })
+    };
 }
 
 impl Drop for AXObserver {
     fn drop(&mut self) {
+        self.context.deactivate();
         if self.observer.is_null() {
             return;
         }
@@ -142,11 +73,7 @@ impl Drop for AXObserver {
                 )
             };
         }
-        // SAFETY: FFI boundary with properly validated inputs
-        unsafe {
-            bridge::ax_observer::ax_observer_unschedule_from_run_loop(self.observer);
-            bridge::ax_observer::ax_observer_release(self.observer);
-        }
+        unsafe { bridge::ax_observer::ax_observer_release(self.observer) };
         self.observer = core::ptr::null_mut();
     }
 }
@@ -179,25 +106,18 @@ impl AXObserver {
     where
         F: Fn(&AXObserverEvent) + Send + Sync + 'static,
     {
-        let state = Arc::new(ObserverState {
-            callback: Mutex::new(Box::new(callback)),
-        });
+        let context = ObserverContext::new(Box::new(callback));
         let mut observer = core::ptr::null_mut();
-        // SAFETY: FFI call with valid arguments
         let status = unsafe {
-            if with_info {
-                bridge::ax_observer::ax_observer_create_with_info(
-                    pid,
-                    Some(observer_info_callback),
-                    &raw mut observer,
-                )
-            } else {
-                bridge::ax_observer::ax_observer_create(
-                    pid,
-                    Some(observer_callback),
-                    &raw mut observer,
-                )
-            }
+            bridge::ax_observer::ax_observer_create(
+                pid,
+                with_info,
+                Some(observer_callback),
+                context.as_ptr(),
+                Some(ObserverContext::RETAIN),
+                Some(ObserverContext::RELEASE),
+                &raw mut observer,
+            )
         };
         if status != K_AX_ERROR_SUCCESS {
             return Err(AXError::from_status(status, "AXObserverCreate"));
@@ -205,7 +125,7 @@ impl AXObserver {
         Ok(Self {
             observer,
             registrations: Vec::new(),
-            state,
+            context,
         })
     }
 
@@ -216,17 +136,12 @@ impl AXObserver {
         notification: &str,
     ) -> Result<(), AXError> {
         let notification = internal::make_cstring(notification)?;
-        let refcon = Arc::as_ptr(&self.state)
-            .cast::<ObserverState>()
-            .cast_mut()
-            .cast::<c_void>();
         // SAFETY: FFI call with valid arguments
         let status = unsafe {
             bridge::ax_notification::ax_notification_add(
                 self.observer,
                 element.as_ptr(),
                 notification.as_ptr(),
-                refcon,
             )
         };
         if status != K_AX_ERROR_SUCCESS {
@@ -237,6 +152,40 @@ impl AXObserver {
         }
         self.registrations.push((element.clone(), notification));
         Ok(())
+    }
+
+    pub fn remove_notification(
+        &mut self,
+        element: &AXUIElement,
+        notification: &str,
+    ) -> Result<(), AXError> {
+        let notification = internal::make_cstring(notification)?;
+        let status = unsafe {
+            bridge::ax_notification::ax_notification_remove(
+                self.observer,
+                element.as_ptr(),
+                notification.as_ptr(),
+            )
+        };
+        if status == K_AX_ERROR_SUCCESS || status == K_AX_ERROR_NOTIFICATION_NOT_REGISTERED {
+            self.registrations.retain(|(registered, name)| {
+                *name != notification
+                    || !unsafe {
+                        bridge::ax_ui_element::ax_ui_element_equal(
+                            registered.as_ptr(),
+                            element.as_ptr(),
+                        )
+                    }
+            });
+        }
+        if status == K_AX_ERROR_SUCCESS {
+            Ok(())
+        } else {
+            Err(AXError::from_status(
+                status,
+                notification.to_string_lossy().as_ref(),
+            ))
+        }
     }
 
     /// Schedules the observer run-loop source returned by `AXObserverGetRunLoopSource` on the current loop.
@@ -262,4 +211,99 @@ pub fn run_current_run_loop() {
 pub fn stop_current_run_loop() {
     // SAFETY: FFI boundary with properly validated inputs
     unsafe { bridge::ax_observer::ax_stop_current_run_loop() };
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Mutex};
+
+    use super::{observer_callback, ObserverContext};
+    use crate::bridge;
+    use crate::AXUIElement;
+
+    fn notification_handle(name: &core::ffi::CStr) -> *mut core::ffi::c_void {
+        let handle = unsafe { bridge::ax_value::ax_value_create_string(name.as_ptr()) };
+        assert!(!handle.is_null());
+        handle
+    }
+
+    fn element_handle() -> *mut core::ffi::c_void {
+        let system = AXUIElement::system_wide().expect("system-wide element");
+        let handle = unsafe { bridge::ax_ui_element::ax_ui_element_retain(system.as_ptr()) };
+        assert!(!handle.is_null());
+        handle
+    }
+
+    #[test]
+    fn trampoline_delivers_until_the_context_is_deactivated() {
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let sink = Arc::clone(&seen);
+        let context = ObserverContext::new(Box::new(move |event| {
+            sink.lock().unwrap().push(event.notification.clone());
+        }));
+        let foreign = context.retained_ptr();
+
+        unsafe {
+            observer_callback(
+                foreign,
+                element_handle(),
+                notification_handle(c"AXTitleChanged"),
+                core::ptr::null_mut(),
+            );
+        }
+        assert_eq!(*seen.lock().unwrap(), vec!["AXTitleChanged".to_string()]);
+
+        context.deactivate();
+        unsafe {
+            observer_callback(
+                foreign,
+                element_handle(),
+                notification_handle(c"AXMoved"),
+                core::ptr::null_mut(),
+            );
+        }
+        assert_eq!(seen.lock().unwrap().len(), 1);
+
+        drop(context);
+        assert_eq!(Arc::strong_count(&seen), 2);
+        unsafe { (ObserverContext::RELEASE)(foreign) };
+        assert_eq!(Arc::strong_count(&seen), 1);
+    }
+
+    #[test]
+    fn trampoline_skips_incomplete_events_and_contains_panics() {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let counter = Arc::clone(&calls);
+        let context = ObserverContext::new(Box::new(move |_| {
+            counter.fetch_add(1, Ordering::SeqCst);
+            panic!("observer callback panic");
+        }));
+
+        unsafe {
+            observer_callback(
+                context.as_ptr(),
+                core::ptr::null_mut(),
+                notification_handle(c"AXMoved"),
+                core::ptr::null_mut(),
+            );
+            observer_callback(
+                context.as_ptr(),
+                element_handle(),
+                core::ptr::null_mut(),
+                core::ptr::null_mut(),
+            );
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+        unsafe {
+            observer_callback(
+                context.as_ptr(),
+                element_handle(),
+                notification_handle(c"AXMoved"),
+                core::ptr::null_mut(),
+            );
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
 }

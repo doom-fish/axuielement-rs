@@ -33,6 +33,19 @@ public func ax_ui_element_release(_ handle: UnsafeMutableRawPointer?) {
     releaseObject(handle)
 }
 
+@_cdecl("ax_ui_element_equal")
+public func ax_ui_element_equal(
+    _ lhs: UnsafeMutableRawPointer?,
+    _ rhs: UnsafeMutableRawPointer?
+) -> Bool {
+    guard let lhs, let rhs else {
+        return false
+    }
+    let left: AXUIElement = unretainedObject(lhs)
+    let right: AXUIElement = unretainedObject(rhs)
+    return CFEqual(left, right)
+}
+
 @_cdecl("ax_ui_element_get_pid")
 public func ax_ui_element_get_pid(
     _ handle: UnsafeMutableRawPointer?,

@@ -5,6 +5,7 @@ extern "C" {
     pub fn ax_ui_element_create_application(pid: i32) -> Handle;
     pub fn ax_ui_element_retain(handle: Handle) -> Handle;
     pub fn ax_ui_element_release(handle: Handle);
+    pub fn ax_ui_element_equal(lhs: Handle, rhs: Handle) -> bool;
     pub fn ax_ui_element_get_pid(handle: Handle, out_pid: *mut i32) -> AXStatus;
     pub fn ax_ui_element_set_messaging_timeout(handle: Handle, timeout: f32) -> AXStatus;
     pub fn ax_ui_element_copy_element_at_position(

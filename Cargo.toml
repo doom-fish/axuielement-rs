@@ -29,7 +29,7 @@ include = [
 [features]
 default = ["raw-ffi"]
 raw-ffi = []
-async = ["dep:doom-fish-utils"]
+async = ["doom-fish-utils/futures-stream"]
 
 [lints.rust]
 
@@ -44,7 +44,7 @@ crate-type = ["lib"]
 
 [dependencies]
 apple-cf = { path = "../apple-cf-rs", version = ">=0.11, <0.12", default-features = false, features = ["cg"] }
-doom-fish-utils = { path = "../doom-fish-utils", version = ">=0.4.1, <0.5", optional = true, features = ["futures-stream"] }
+doom-fish-utils = { path = "../doom-fish-utils", version = ">=0.4.1, <0.5" }
 
 [dev-dependencies]
 pollster = "0.3"

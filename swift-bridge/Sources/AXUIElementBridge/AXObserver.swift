@@ -8,34 +8,72 @@ public typealias RustObserverCallback = @convention(c) (
     UnsafeMutableRawPointer?
 ) -> Void
 
-public typealias RustObserverInfoCallback = @convention(c) (
-    UnsafeMutableRawPointer?,
-    UnsafeMutableRawPointer?,
-    UnsafeMutableRawPointer?,
-    UnsafeMutableRawPointer?,
-    UnsafeMutableRawPointer?
-) -> Void
+public typealias RustObserverContextHook = @convention(c) (UnsafeMutableRawPointer?) -> Void
 
 final class AXObserverBox {
     let observer: AXObserver
     let source: CFRunLoopSource
-    let callback: RustObserverCallback?
-    let infoCallback: RustObserverInfoCallback?
-    var scheduledRunLoop: CFRunLoop?
+    let callback: RustObserverCallback
+    let context: UnsafeMutableRawPointer?
+    private let releaseContext: RustObserverContextHook
+    private let lock = NSLock()
+    private var scheduledRunLoop: CFRunLoop?
 
-    init(observer: AXObserver, callback: RustObserverCallback?) {
+    init(
+        observer: AXObserver,
+        callback: @escaping RustObserverCallback,
+        context: UnsafeMutableRawPointer?,
+        retainContext: RustObserverContextHook,
+        releaseContext: @escaping RustObserverContextHook
+    ) {
         self.observer = observer
         self.source = AXObserverGetRunLoopSource(observer)
         self.callback = callback
-        self.infoCallback = nil
+        self.context = context
+        self.releaseContext = releaseContext
+        retainContext(context)
     }
 
-    init(observer: AXObserver, infoCallback: RustObserverInfoCallback?) {
-        self.observer = observer
-        self.source = AXObserverGetRunLoopSource(observer)
-        self.callback = nil
-        self.infoCallback = infoCallback
+    deinit {
+        if let scheduledRunLoop {
+            CFRunLoopRemoveSource(scheduledRunLoop, source, .commonModes)
+        }
+        releaseContext(context)
     }
+
+    func schedule(on runLoop: CFRunLoop) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard scheduledRunLoop == nil else {
+            return
+        }
+        CFRunLoopAddSource(runLoop, source, .commonModes)
+        scheduledRunLoop = runLoop
+    }
+
+    func unschedule() {
+        lock.lock()
+        let runLoop = scheduledRunLoop
+        scheduledRunLoop = nil
+        lock.unlock()
+        guard let runLoop else {
+            return
+        }
+        CFRunLoopRemoveSource(runLoop, source, .commonModes)
+        waitForRunningCallout(on: runLoop)
+    }
+}
+
+private func waitForRunningCallout(on runLoop: CFRunLoop) {
+    guard runLoop !== CFRunLoopGetCurrent(), CFRunLoopCopyCurrentMode(runLoop) != nil else {
+        return
+    }
+    let drained = DispatchSemaphore(value: 0)
+    CFRunLoopPerformBlock(runLoop, CFRunLoopMode.commonModes.rawValue) {
+        drained.signal()
+    }
+    CFRunLoopWakeUp(runLoop)
+    _ = drained.wait(timeout: .now() + .seconds(2))
 }
 
 private let observerRegistryLock = NSLock()
@@ -64,28 +102,30 @@ private func lookupObserver(_ observer: AXObserver) -> AXObserverBox? {
     return box
 }
 
-private let observerTrampoline: AXObserverCallback = { observer, element, notification, refcon in
-    guard let box = lookupObserver(observer), let callback = box.callback else {
+private func deliverNotification(
+    _ observer: AXObserver,
+    _ element: AXUIElement,
+    _ notification: CFString,
+    _ info: CFDictionary?
+) {
+    guard let box = lookupObserver(observer) else {
         return
     }
-    callback(
-        retainObject(box),
-        retainObject(element),
-        retainObject((notification as String) as NSString),
-        refcon)
+    withExtendedLifetime(box) {
+        box.callback(
+            box.context,
+            retainObject(element),
+            retainObject((notification as String) as NSString),
+            info.map { retainObject($0) })
+    }
 }
 
-private let observerInfoTrampoline: AXObserverCallbackWithInfo = { observer, element, notification, info, refcon in
-    guard let box = lookupObserver(observer), let callback = box.infoCallback else {
-        return
-    }
-    let infoHandle = retainObject(info)
-    callback(
-        retainObject(box),
-        retainObject(element),
-        retainObject((notification as String) as NSString),
-        infoHandle,
-        refcon)
+private let observerTrampoline: AXObserverCallback = { observer, element, notification, _ in
+    deliverNotification(observer, element, notification, nil)
+}
+
+private let observerInfoTrampoline: AXObserverCallbackWithInfo = { observer, element, notification, info, _ in
+    deliverNotification(observer, element, notification, info)
 }
 
 @_cdecl("ax_observer_get_type_id")
@@ -96,40 +136,33 @@ public func ax_observer_get_type_id() -> UInt {
 @_cdecl("ax_observer_create")
 public func ax_observer_create(
     _ pid: Int32,
+    _ withInfo: Bool,
     _ callback: RustObserverCallback?,
+    _ context: UnsafeMutableRawPointer?,
+    _ retainContext: RustObserverContextHook?,
+    _ releaseContext: RustObserverContextHook?,
     _ outObserver: UnsafeMutablePointer<UnsafeMutableRawPointer?>?
 ) -> Int32 {
     guard let outObserver else {
         return AXError.illegalArgument.rawValue
     }
-    var observer: AXObserver?
-    let error = AXObserverCreate(pid, observerTrampoline, &observer)
-    guard error == .success, let observer else {
-        outObserver.pointee = nil
-        return error.rawValue
-    }
-    let box = AXObserverBox(observer: observer, callback: callback)
-    registerObserver(box)
-    outObserver.pointee = retainObject(box)
-    return error.rawValue
-}
-
-@_cdecl("ax_observer_create_with_info")
-public func ax_observer_create_with_info(
-    _ pid: Int32,
-    _ callback: RustObserverInfoCallback?,
-    _ outObserver: UnsafeMutablePointer<UnsafeMutableRawPointer?>?
-) -> Int32 {
-    guard let outObserver else {
+    outObserver.pointee = nil
+    guard let callback, let retainContext, let releaseContext else {
         return AXError.illegalArgument.rawValue
     }
     var observer: AXObserver?
-    let error = AXObserverCreateWithInfoCallback(pid, observerInfoTrampoline, &observer)
+    let error = withInfo
+        ? AXObserverCreateWithInfoCallback(pid, observerInfoTrampoline, &observer)
+        : AXObserverCreate(pid, observerTrampoline, &observer)
     guard error == .success, let observer else {
-        outObserver.pointee = nil
         return error.rawValue
     }
-    let box = AXObserverBox(observer: observer, infoCallback: callback)
+    let box = AXObserverBox(
+        observer: observer,
+        callback: callback,
+        context: context,
+        retainContext: retainContext,
+        releaseContext: releaseContext)
     registerObserver(box)
     outObserver.pointee = retainObject(box)
     return error.rawValue
@@ -141,27 +174,8 @@ public func ax_observer_release(_ handle: UnsafeMutableRawPointer?) {
         return
     }
     let box: AXObserverBox = unretainedObject(handle)
-    if let runLoop = box.scheduledRunLoop {
-        CFRunLoopRemoveSource(runLoop, box.source, .defaultMode)
-        box.scheduledRunLoop = nil
-    }
     unregisterObserver(box)
-    releaseObject(handle)
-}
-
-/// Balances the per-callback `retainObject(box)` performed by the observer
-/// trampolines.
-///
-/// Each delivered notification hands Rust a freshly retained (`+1`) observer
-/// handle. The Rust callback must drop that reference once it is done, but it
-/// must **not** tear down the run-loop source or unregister the observer the
-/// way `ax_observer_release` does — otherwise the observer would stop firing
-/// after the first event. This entry point therefore only performs the
-/// matching `-1`, leaving the run-loop source scheduled and the registry entry
-/// intact. The real teardown still happens exactly once, when the owning Rust
-/// `AXObserver` is dropped and calls `ax_observer_release`.
-@_cdecl("ax_observer_release_callback")
-public func ax_observer_release_callback(_ handle: UnsafeMutableRawPointer?) {
+    box.unschedule()
     releaseObject(handle)
 }
 
@@ -171,12 +185,7 @@ public func ax_observer_schedule_on_current_run_loop(_ handle: UnsafeMutableRawP
         return
     }
     let box: AXObserverBox = unretainedObject(handle)
-    guard box.scheduledRunLoop == nil else {
-        return
-    }
-    let runLoop = CFRunLoopGetCurrent()
-    CFRunLoopAddSource(runLoop, box.source, .defaultMode)
-    box.scheduledRunLoop = runLoop
+    box.schedule(on: CFRunLoopGetCurrent())
 }
 
 @_cdecl("ax_observer_unschedule_from_run_loop")
@@ -185,11 +194,7 @@ public func ax_observer_unschedule_from_run_loop(_ handle: UnsafeMutableRawPoint
         return
     }
     let box: AXObserverBox = unretainedObject(handle)
-    guard let runLoop = box.scheduledRunLoop else {
-        return
-    }
-    CFRunLoopRemoveSource(runLoop, box.source, .defaultMode)
-    box.scheduledRunLoop = nil
+    box.unschedule()
 }
 
 @_cdecl("ax_run_current_run_loop")
