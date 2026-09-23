@@ -189,10 +189,14 @@ impl AXObserver {
                 bridge::ax_observer::ax_observer_create_with_info(
                     pid,
                     Some(observer_info_callback),
-                    &mut observer,
+                    &raw mut observer,
                 )
             } else {
-                bridge::ax_observer::ax_observer_create(pid, Some(observer_callback), &mut observer)
+                bridge::ax_observer::ax_observer_create(
+                    pid,
+                    Some(observer_callback),
+                    &raw mut observer,
+                )
             }
         };
         if status != K_AX_ERROR_SUCCESS {

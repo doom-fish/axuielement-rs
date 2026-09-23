@@ -75,7 +75,7 @@ fn copy_system_element(
 ) -> Result<Option<AXUIElement>, AXError> {
     let mut raw = core::ptr::null_mut();
     // SAFETY: FFI call with valid arguments
-    let status = unsafe { callback(handle, &mut raw) };
+    let status = unsafe { callback(handle, &raw mut raw) };
     if status == K_AX_ERROR_SUCCESS {
         // SAFETY: pointer is guaranteed valid from the bridge
         Ok((!raw.is_null()).then(|| unsafe { AXUIElement::from_raw(raw) }))

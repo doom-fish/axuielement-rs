@@ -242,7 +242,7 @@ impl AXValue {
     pub fn as_bool(&self) -> Option<bool> {
         let mut value = false;
         // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_value::ax_value_get_bool(self.raw, &mut value) }.then_some(value)
+        unsafe { bridge::ax_value::ax_value_get_bool(self.raw, &raw mut value) }.then_some(value)
     }
 
     #[must_use]
@@ -250,7 +250,7 @@ impl AXValue {
     pub fn as_i64(&self) -> Option<i64> {
         let mut value = 0_i64;
         // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_value::ax_value_get_i64(self.raw, &mut value) }.then_some(value)
+        unsafe { bridge::ax_value::ax_value_get_i64(self.raw, &raw mut value) }.then_some(value)
     }
 
     #[must_use]
@@ -258,7 +258,7 @@ impl AXValue {
     pub fn as_f64(&self) -> Option<f64> {
         let mut value = 0.0_f64;
         // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_value::ax_value_get_f64(self.raw, &mut value) }.then_some(value)
+        unsafe { bridge::ax_value::ax_value_get_f64(self.raw, &raw mut value) }.then_some(value)
     }
 
     #[must_use]
@@ -266,7 +266,7 @@ impl AXValue {
     pub fn as_point(&self) -> Option<AXPoint> {
         let mut value = AXPoint::default();
         // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_value::ax_value_get_point(self.raw, &mut value) }.then_some(value)
+        unsafe { bridge::ax_value::ax_value_get_point(self.raw, &raw mut value) }.then_some(value)
     }
 
     #[must_use]
@@ -274,7 +274,7 @@ impl AXValue {
     pub fn as_size(&self) -> Option<AXSize> {
         let mut value = AXSize::default();
         // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_value::ax_value_get_size(self.raw, &mut value) }.then_some(value)
+        unsafe { bridge::ax_value::ax_value_get_size(self.raw, &raw mut value) }.then_some(value)
     }
 
     #[must_use]
@@ -282,7 +282,7 @@ impl AXValue {
     pub fn as_rect(&self) -> Option<AXRect> {
         let mut value = AXRect::default();
         // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_value::ax_value_get_rect(self.raw, &mut value) }.then_some(value)
+        unsafe { bridge::ax_value::ax_value_get_rect(self.raw, &raw mut value) }.then_some(value)
     }
 
     #[must_use]
@@ -290,7 +290,7 @@ impl AXValue {
     pub fn as_range(&self) -> Option<AXRange> {
         let mut value = AXRange::default();
         // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_value::ax_value_get_range(self.raw, &mut value) }.then_some(value)
+        unsafe { bridge::ax_value::ax_value_get_range(self.raw, &raw mut value) }.then_some(value)
     }
 
     #[must_use]
@@ -298,7 +298,7 @@ impl AXValue {
     pub fn as_error(&self) -> Option<AXError> {
         let mut status = 0_i32;
         // SAFETY: FFI boundary with properly validated inputs
-        unsafe { bridge::ax_value::ax_value_get_error_code(self.raw, &mut status) }
+        unsafe { bridge::ax_value::ax_value_get_error_code(self.raw, &raw mut status) }
             .then(|| AXError::from_status(status, "AXValue"))
     }
 
