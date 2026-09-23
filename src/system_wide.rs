@@ -2,6 +2,7 @@
 
 use core::ops::Deref;
 
+use crate::ax_attribute;
 use crate::ax_error::{AXError, K_AX_ERROR_NO_VALUE, K_AX_ERROR_SUCCESS};
 use crate::ax_ui_element::AXUIElement;
 use crate::bridge;
@@ -50,10 +51,9 @@ impl SystemWideElement {
 
     /// Convenience wrapper over `AXUIElementCopyAttributeValue` for `kAXFocusedWindowAttribute`.
     pub fn focused_window(&self) -> Result<Option<AXUIElement>, AXError> {
-        copy_system_element(
-            self.inner.as_ptr(),
-            bridge::system_wide::ax_system_wide_copy_focused_window,
-        )
+        self.focused_application()?.map_or(Ok(None), |application| {
+            application.element_attribute(ax_attribute::AX_FOCUSED_WINDOW_ATTRIBUTE)
+        })
     }
 
     #[must_use]

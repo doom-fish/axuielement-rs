@@ -46,11 +46,3 @@ public func ax_system_wide_copy_focused_ui_element(
 ) -> Int32 {
     copySystemWideElementAttribute(handle, "AXFocusedUIElement" as CFString, outElement)
 }
-
-@_cdecl("ax_system_wide_copy_focused_window")
-public func ax_system_wide_copy_focused_window(
-    _ handle: UnsafeMutableRawPointer?,
-    _ outElement: UnsafeMutablePointer<UnsafeMutableRawPointer?>?
-) -> Int32 {
-    copySystemWideElementAttribute(handle, "AXFocusedWindow" as CFString, outElement)
-}

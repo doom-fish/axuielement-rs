@@ -10,6 +10,4 @@ extern "C" {
         handle: Handle,
         out_element: *mut Handle,
     ) -> AXStatus;
-    pub fn ax_system_wide_copy_focused_window(handle: Handle, out_element: *mut Handle)
-        -> AXStatus;
 }
