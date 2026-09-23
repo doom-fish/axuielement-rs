@@ -1,5 +1,41 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.10.0] - Unreleased
+
+### Security
+
+- `AXObserver` no longer frees its callback state under a running callback. The callback's context pointer borrowed the observer's state, and `Drop` freed it without synchronising with the run loop delivering callbacks, so dropping an observer on another thread or inside its own callback was a use-after-free. The state is now a `doom_fish_utils::callback_context::CallbackContext` owned by the Swift observer until its run-loop source is gone; a cross-thread drop removes the source and waits for that run loop to finish a callback in progress.
+
+### Fixed
+
+- Dropping an `AXNotificationStream` right after subscribing could hang forever in `join()`: the stop reached the stream's run loop before `CFRunLoopRun` started, and Core Foundation discards such a stop. Stopping now queues a block that stops the loop from inside, so an early or repeated stop is never lost.
+- `SystemWideElement::focused_window` reads `AXFocusedWindow` from the focused application; the system-wide element has no such attribute, so it used to fail.
+- The observer's run-loop source is scheduled in the common modes instead of only the default mode, so notifications keep arriving while the host tracks a menu or a drag.
+- `AXAPIEnabled`, `AXMakeProcessTrusted` and `AXUIElementPostKeyboardEvent` are called through C declarations instead of `@_silgen_name` shims that used the Swift calling convention.
+- README and `COVERAGE*.md`: `AXObserverRemoveNotification` really has a safe wrapper now, the audited SDK is named, `AXWebConstants.h` and its text-marker attributes are listed as not covered, and raw-only `VERIFIED` rows are identified.
+
+### Changed
+
+- **BREAKING:** requires `apple-cf` 0.11 (`>=0.11, <0.12`); the `ffi` module's Core Foundation and Core Graphics type aliases come from it. `doom-fish-utils` (`>=0.4.1, <0.5`) is a regular dependency now, and the `async` feature enables its `futures-stream` feature.
+- **BREAKING:** `rust-version` is 1.82.
+- Dropping an `AXObserver`, or calling `unschedule_from_run_loop`, from a thread other than the one whose run loop the observer is scheduled on waits up to two seconds for a callback in progress on that loop.
+- Observer callbacks run without an internal lock, so a callback that re-enters its own observer no longer deadlocks; panics are contained by `CallbackContext::with`.
+
+### Added
+
+- `AXObserver::remove_notification`.
+
+## [0.9.1] - 2026-06-06
+
+### Fixed
+
+- Balanced the per-callback observer retain, contained panics in `AXObserver` callbacks, and pinned the `AXValue` geometry ABI with layout tests.
+
 ## [0.9.0] - 2026-05-20
 
 ### Added

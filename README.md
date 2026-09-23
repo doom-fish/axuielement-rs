@@ -56,7 +56,7 @@ An `AXObserver` delivers its callback on the thread whose run loop it was schedu
 The original raw C declarations remain available behind the `raw-ffi` Cargo feature:
 
 ```toml
-axuielement = { version = "0.9", default-features = false }
+axuielement = { version = "0.10", default-features = false }
 # or keep the default `raw-ffi` feature enabled for `axuielement::ffi`
 ```
 
@@ -71,7 +71,7 @@ Most runtime messaging requires **Accessibility permission** (System Settings â†
 Enable the `async` Cargo feature to use `axuielement::async_api::AXNotificationStream`, which wraps `AXObserver` notifications in an executor-agnostic bounded async stream.
 
 ```toml
-axuielement = { version = "0.9", features = ["async"] }
+axuielement = { version = "0.10", features = ["async"] }
 ```
 
 ## Examples and tests
