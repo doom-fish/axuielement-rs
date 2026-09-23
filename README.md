@@ -2,7 +2,9 @@
 
 Safe Rust bindings for Apple's [`AXUIElement`](https://developer.apple.com/documentation/applicationservices/axuielement_h) Accessibility API on macOS.
 
-> **Status:** v0.9 adds an optional executor-agnostic `async_api` module for `AXObserver` notifications while keeping the Wave-C Swift bridge over the C Accessibility APIs and coverage across the crate's ten logical areas: `AXUIElement`, `AXObserver`, `AXValue`, `AXTextMarker`, `AXAttribute`, `AXAction`, `AXNotification`, `AXError`, `SystemWide`, and `ProcessTrust`.
+> **Status:** v0.10 makes `AXObserver` safe to drop from any thread or from inside its own callback, schedules observers in the common run-loop modes, and adds `AXObserver::remove_notification`. The Swift bridge over the C Accessibility APIs covers ten logical areas: `AXUIElement`, `AXObserver`, `AXValue`, `AXTextMarker`, `AXAttribute`, `AXAction`, `AXNotification`, `AXError`, `SystemWide`, and `ProcessTrust`, plus an optional executor-agnostic `async_api` module for observer notifications.
+
+Requires macOS 10.13 or later.
 
 ## Quick start
 
@@ -36,14 +38,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Covered areas
 
 - `AXUIElement` creation, attribute reads/writes, hit-testing, batch fetches, parameterized attributes, action metadata, and keyboard-event shims.
-- `AXObserver` creation, add/remove notification registration, run-loop scheduling, info-dictionary callbacks, and `async_api::AXNotificationStream`.
+- `AXObserver` creation, add/remove notification registration, run-loop scheduling in the common modes, info-dictionary callbacks, and `async_api::AXNotificationStream`.
 - `AXValue` round-tripping for strings, booleans, numbers, `CGPoint`, `CGSize`, `CGRect`, `CFRange`, `AXError`, arrays, dictionaries, and binary payloads.
 - `AXTextMarker` and `AXTextMarkerRange` creation plus byte round-trips.
 - Generated constant modules for attributes, actions, notifications, roles, subroles, menu-item modifiers, and value constants.
 - `SystemWideElement` convenience helpers for focused application/window/UI-element lookups.
 - `ProcessTrust` helpers for API-enabled checks and trust queries.
 
-See [`COVERAGE.md`](COVERAGE.md) for the audited SDK surface.
+See [`COVERAGE.md`](COVERAGE.md) for the audited SDK surface. The web-content constants of `AXWebConstants.h`, including the text-marker attributes, have no named constants yet; pass their names as strings.
+
+## Observers and threads
+
+An `AXObserver` delivers its callback on the thread whose run loop it was scheduled on with `schedule_on_current_run_loop`, in the common modes, so it keeps firing while that thread tracks a menu or a drag. The observer is `Send`. Dropping it, or calling `unschedule_from_run_loop`, removes its run-loop source; when that run loop belongs to another thread and is running, the call waits (up to two seconds) for a callback already in progress to return. The callback's state stays alive until the source is gone, so dropping an observer inside its own callback is safe.
 
 ## Raw FFI
 

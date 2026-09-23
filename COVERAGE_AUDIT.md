@@ -6,6 +6,8 @@ GAPS: 0
 EXEMPT: 3
 COVERAGE_PCT: 100.0%
 
+What these numbers measure: the 65 symbols of `AXUIElement.h` and `AXValue.h` in MacOSX26.2.sdk. The newer SDKs installed alongside it were not re-audited, and `AXWebConstants.h` (161 web-content names, 35 of them text-marker attributes, present in the macOS 26 and 27 SDKs) is outside this count and not wrapped. 13 of the 62 VERIFIED rows (`AXValueType` and its twelve enum and legacy constants) are raw `ffi` declarations only; the safe API models them as `AXValueKind`.
+
 Notes:
 - `MacOSX26.2.sdk` does not ship standalone `AXObserver.h` or `AXTextMarker.h` files under `HIServices.framework/Headers`; those public declarations live in `AXUIElement.h` under the Notification API and Text Marker API sections, so this audit uses the actual SDK layout.
 - Reachability counts `raw-ffi` items because `raw-ffi` is a default feature in `Cargo.toml`.
@@ -56,7 +58,7 @@ Notes:
 | `AXObserverCreate` | function | `AXUIElement.h (Notification API)` | AXObserver::new(); ffi::AXObserverCreate |
 | `AXObserverCreateWithInfoCallback` | function | `AXUIElement.h (Notification API)` | AXObserver::new_with_info(); ffi::AXObserverCreateWithInfoCallback |
 | `AXObserverAddNotification` | function | `AXUIElement.h (Notification API)` | AXObserver::add_notification(); ffi::AXObserverAddNotification |
-| `AXObserverRemoveNotification` | function | `AXUIElement.h (Notification API)` | ffi::AXObserverRemoveNotification; AXObserver drop cleanup |
+| `AXObserverRemoveNotification` | function | `AXUIElement.h (Notification API)` | AXObserver::remove_notification(); AXObserver drop cleanup; ffi::AXObserverRemoveNotification |
 | `AXObserverGetRunLoopSource` | function | `AXUIElement.h (Notification API)` | AXObserver::schedule_on_current_run_loop(); AXObserver::unschedule_from_run_loop(); ffi::AXObserverGetRunLoopSource |
 | `AXValueType` | enum type | `AXValue.h` | ffi::AXValueType |
 | `kAXValueTypeCGPoint` | enum case | `AXValue.h` | ffi::kAXValueTypeCGPoint |

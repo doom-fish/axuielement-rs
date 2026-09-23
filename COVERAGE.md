@@ -1,6 +1,8 @@
 # COVERAGE
 
-Status for the v0.6.0 Wave-C Swift-bridge implementation. Every public Accessibility SDK symbol in the audited headers is listed below.
+Status for the Swift-bridge implementation, audited against the HIServices headers of MacOSX26.2.sdk. Every public Accessibility symbol in those headers is listed below.
+
+Not covered: `AXWebConstants.h`, which first ships in the macOS 26 SDKs and is documented in full in the macOS 27 SDK. It declares 161 web-content names, including 35 text-marker attributes and parameterized attributes (`kAXStartTextMarkerAttribute`, `kAXStringForTextMarkerRangeParameterizedAttribute` and related names). Apart from `kAXElementBusyAttribute`, none of them has a constant in this crate; pass the attribute name as a string to `attribute` or `parameterized_attribute` to use them.
 
 ## AXUIElement.h
 
@@ -28,7 +30,7 @@ Status for the v0.6.0 Wave-C Swift-bridge implementation. Every public Accessibi
 | `AXUIElementGetTypeID` | ✅ implemented | Swift bridge + safe wrapper. |
 | `AXUIElementIsAttributeSettable` | ✅ implemented | Swift bridge + safe wrapper. |
 | `AXUIElementPerformAction` | ✅ implemented | Swift bridge + safe wrapper. |
-| `AXUIElementPostKeyboardEvent` | ✅ implemented | Swift bridge shim wraps the deprecated C symbol. |
+| `AXUIElementPostKeyboardEvent` | ✅ implemented | `AXUIElement::post_keyboard_event`; the bridge calls the deprecated C symbol through a C declaration. |
 | `AXUIElementSetAttributeValue` | ✅ implemented | Swift bridge + safe wrapper. |
 | `AXUIElementSetMessagingTimeout` | ✅ implemented | Swift bridge + safe wrapper. |
 | `AXTextMarkerCreate` | ✅ implemented | Swift bridge + safe wrapper. |
@@ -45,11 +47,11 @@ Status for the v0.6.0 Wave-C Swift-bridge implementation. Every public Accessibi
 | `AXObserverCreateWithInfoCallback` | ✅ implemented | Swift bridge + safe wrapper. |
 | `AXObserverGetRunLoopSource` | ✅ implemented | Swift bridge + safe wrapper. |
 | `AXObserverGetTypeID` | ✅ implemented | Swift bridge + safe wrapper. |
-| `AXObserverRemoveNotification` | ✅ implemented | Swift bridge + safe wrapper. |
-| `AXAPIEnabled` | ✅ implemented | Swift bridge shim wraps the deprecated C symbol. |
+| `AXObserverRemoveNotification` | ✅ implemented | `AXObserver::remove_notification`, and `Drop` for every registration still active. |
+| `AXAPIEnabled` | ✅ implemented | `api_enabled`; the bridge calls the deprecated C symbol through a C declaration. |
 | `AXIsProcessTrusted` | ✅ implemented | Swift bridge + safe wrapper. |
 | `AXIsProcessTrustedWithOptions` | ✅ implemented | Swift bridge + safe wrapper. |
-| `AXMakeProcessTrusted` | ✅ implemented | Swift bridge shim wraps the deprecated C symbol. |
+| `AXMakeProcessTrusted` | ✅ implemented | `make_process_trusted`; the bridge calls the deprecated C symbol through a C declaration. |
 | `kAXCopyMultipleAttributeOptionStopOnError` | ✅ implemented | Safe and raw option constants exposed. |
 | `kAXTrustedCheckOptionPrompt` | ✅ implemented | ProcessTrust bridge uses the SDK constant. |
 
