@@ -9,7 +9,7 @@ description = "Safe Rust bindings for Apple's AXUIElement — drive other apps' 
 authors = ["Per Johansson <per@doom.fish>"]
 keywords = ["accessibility", "ax", "automation", "macos", "ui"]
 categories = ["api-bindings", "os::macos-apis", "accessibility"]
-rust-version = "1.76"
+rust-version = "1.82"
 readme = "README.md"
 build = "build.rs"
 include = [
@@ -43,8 +43,8 @@ name = "axuielement"
 crate-type = ["lib"]
 
 [dependencies]
-apple-cf = { version = ">=0.9, <0.10", default-features = false, features = ["cg"] }
-doom-fish-utils = { path = "../doom-fish-utils", version = ">=0.1, <0.4", optional = true, features = ["futures-stream"] }
+apple-cf = { path = "../apple-cf-rs", version = ">=0.11, <0.12", default-features = false, features = ["cg"] }
+doom-fish-utils = { path = "../doom-fish-utils", version = ">=0.4.1, <0.5", optional = true, features = ["futures-stream"] }
 
 [dev-dependencies]
 pollster = "0.3"
