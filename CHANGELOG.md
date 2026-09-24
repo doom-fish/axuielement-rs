@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SystemWideElement::focused_window` reads `AXFocusedWindow` from the focused application; the system-wide element has no such attribute, so it used to fail.
 - The observer's run-loop source is scheduled in the common modes instead of only the default mode, so notifications keep arriving while the host tracks a menu or a drag.
 - `AXAPIEnabled`, `AXMakeProcessTrusted` and `AXUIElementPostKeyboardEvent` are called through C declarations instead of `@_silgen_name` shims that used the Swift calling convention.
+- The build script no longer adds the toolchain's Swift 5.5 back-deployment directory (`usr/lib/swift-5.5/macosx`) to the link search path and rpath. Its old `libswift_Concurrency.dylib` shadowed the SDK's, so a binary that also linked Swift code using newer concurrency APIs failed to link, and the rpath pointed into Xcode, which user machines don't have. The bridge uses no Swift concurrency, so the macOS 10.13 minimum is unchanged.
 - README and `COVERAGE*.md`: `AXObserverRemoveNotification` really has a safe wrapper now, the audited SDK is named, `AXWebConstants.h` and its text-marker attributes are listed as not covered, and raw-only `VERIFIED` rows are identified.
 
 ### Changed
