@@ -10,7 +10,7 @@ What these numbers measure: the 65 symbols of `AXUIElement.h` and `AXValue.h` in
 
 Notes:
 - `MacOSX26.2.sdk` does not ship standalone `AXObserver.h` or `AXTextMarker.h` files under `HIServices.framework/Headers`; those public declarations live in `AXUIElement.h` under the Notification API and Text Marker API sections, so this audit uses the actual SDK layout.
-- Reachability counts `raw-ffi` items because `raw-ffi` is a default feature in `Cargo.toml`.
+- Reachability counts `raw-ffi` items, which need the opt-in `raw-ffi` feature (off by default since 0.10.0).
 - I counted public enum / `CF_OPTIONS` cases and the `AXValue.h` legacy `static const` aliases because the crate exposes them through its public raw FFI surface.
 
 ## 🟢 VERIFIED

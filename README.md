@@ -53,14 +53,13 @@ An `AXObserver` delivers its callback on the thread whose run loop it was schedu
 
 ## Raw FFI
 
-The original raw C declarations remain available behind the `raw-ffi` Cargo feature:
+The raw C declarations in `axuielement::ffi` are available behind the `raw-ffi` Cargo feature, which is off by default:
 
 ```toml
-axuielement = { version = "0.10", default-features = false }
-# or keep the default `raw-ffi` feature enabled for `axuielement::ffi`
+axuielement = { version = "0.10", features = ["raw-ffi"] }
 ```
 
-The safe API always talks to the Swift bridge. The `raw-ffi` feature exists for direct low-level interop and compatibility.
+The safe API always talks to the Swift bridge and doesn't need the feature.
 
 ## Permissions
 
@@ -88,7 +87,7 @@ axuielement = { version = "0.10", features = ["async"] }
 - `examples/10_process_trust_status.rs`
 - `examples/11_async_notification_stream.rs` *(requires `--features async`)*
 
-The test suite includes one smoke file per logical area plus the raw-FFI coverage harness.
+The test suite includes one smoke file per logical area plus the raw-FFI coverage harness, which runs with `--features raw-ffi`.
 
 ## License
 

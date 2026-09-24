@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **BREAKING:** requires `apple-cf` 0.11 (`>=0.11, <0.12`); the `ffi` module's Core Foundation and Core Graphics type aliases come from it. `doom-fish-utils` (`>=0.4.1, <0.5`) is a regular dependency now, and the `async` feature enables its `futures-stream` feature.
 - **BREAKING:** `rust-version` is 1.82.
+- **BREAKING:** the `raw-ffi` feature is off by default; enable it to keep using the raw declarations in `axuielement::ffi`. It stayed a default feature only for compatibility, and the safe API never needed it.
 - Dropping an `AXObserver`, or calling `unschedule_from_run_loop`, from a thread other than the one whose run loop the observer is scheduled on waits up to two seconds for a callback in progress on that loop.
 - Observer callbacks run without an internal lock, so a callback that re-enters its own observer no longer deadlocks; panics are contained by `CallbackContext::with`.
 
