@@ -117,6 +117,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Package contents now include examples and tests.
 - Coverage tests now verify `AXUIElement`, `AXValue`, and `AXObserver` header coverage separately.
 
+## [0.4.0] - 2026-05-16
+
+### Added
+
+- Add `AXElement::element_at_position` for hit tests.
+
+## [0.3.0] - 2026-05-16
+
+### Added
+
+- Add an `AXObserver` wrapper.
+
+## [0.2.0] - 2026-05-16
+
+### Added
+
+- Add typed `AXValue` access for `CGPoint` and `CGSize`.
+
 ## [0.1.0] - Initial release
 
 ### Added
