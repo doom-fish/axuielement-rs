@@ -8,5 +8,5 @@ fn error_codes_round_trip() {
 
 #[test]
 fn localized_description_is_non_empty() {
-    assert!(!AXError::CannotComplete.localized_description().is_empty());
+    assert_ne!(AXError::CannotComplete.localized_description(), "");
 }
